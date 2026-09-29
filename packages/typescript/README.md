@@ -1,0 +1,1 @@
+# @gabroberge/eslint-plugin-typescript

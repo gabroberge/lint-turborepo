@@ -1,0 +1,23 @@
+# Dependencies
+node_modules
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Testing
+coverage
+
+# Turbo
+.turbo
+
+# Build Outputs
+dist
+
+# Cursor
+.cursor/hooks
+.agent/
+
+# Temporary files
+.tmp-*

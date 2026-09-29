@@ -1,0 +1,40 @@
+{
+	"name": "@gabroberge/oxlint-plugin",
+	"version": "0.0.0",
+	"private": false,
+	"description": "",
+	"keywords": [],
+	"homepage": "https://github.com/gabroberge/lint-turborepo#readme",
+	"bugs": "https://github.com/gabroberge/lint-turborepo/issues",
+	"license": "MIT",
+	"author": "Gabriel Roberge",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/gabroberge/lint-turborepo.git"
+	},
+	"type": "module",
+	"main": "./dist/index.mjs",
+	"types": "./dist/index.d.mts",
+	"exports": {
+		".": {
+			"import": {
+				"types": "./dist/index.d.mts",
+				"default": "./dist/index.mjs"
+			},
+			"require": {
+				"types": "./dist/index.d.cts",
+				"default": "./dist/index.cjs"
+			},
+			"default": "./dist/index.mjs"
+		}
+	},
+	"scripts": {
+		"build": "tsdown",
+		"lint": "eslint \"src/**/*.ts\"",
+		"test": "vitest run",
+		"typecheck": "tsc -p tsconfig.json --noEmit"
+	},
+	"dependencies": {
+		"@oxlint/plugins": "^1.86.0"
+	}
+}
