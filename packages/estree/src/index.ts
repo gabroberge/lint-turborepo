@@ -4,5 +4,8 @@ export { identifierName } from "./name/identifier-name";
 export { staticKey } from "./name/static-key";
 export { staticTextMatches } from "./name/static-text-matches";
 export { typeReferenceName } from "./name/type-reference-name";
+export { containsNodeType } from "./traverse/contains-node-type";
+export { isNode } from "./traverse/is-node";
+export { traverse } from "./traverse/traverse";
 export { unwrapAwaitedExpression } from "./unwrap/unwrap-awaited-expression";
 export { unwrapExpression } from "./unwrap/unwrap-expression";
