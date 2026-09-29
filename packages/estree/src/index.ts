@@ -1,3 +1,5 @@
+export type { FunctionNode } from "./function/function-node";
+export { isFunctionNode } from "./function/is-function-node";
 export { bindsName } from "./name/binds-name";
 export { exportedName } from "./name/exported-name";
 export { identifierName } from "./name/identifier-name";
