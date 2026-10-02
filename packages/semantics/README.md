@@ -1,128 +1,158 @@
-# @gabroberge/typescript-class-analyzer
+# @gabroberge/typescript-semantics
 
-Initialization-order analysis for TypeScript classes. Given a class body from an ESTree / oxlint AST, it tells which members run code while the class is set up, what each field initializer may read, write, call or affect, and which pairs of members must keep their source order. A lint rule that sorts class members (for example the Angular `ordered-class-members` rule) uses it to reorder only where the analysis finds no interaction. That is a conservative approximation under the assumptions listed in [Deliberate limitations](#deliberate-limitations), not a proof that a swap is unobservable. The analysis knows nothing about any framework: what it may assume about outside calls is supplied by the caller through `ClassAssumptions`.
+A semantic model of one TypeScript module, built from an ESTree AST with scope analysis (what ESLint and oxlint hand to a rule). It records:
+
+- **what is declared**: classes, functions, variables, imports, class members;
+- **what code runs as a whole**: executable _units_ such as field initializers, constructors, methods, functions and module code;
+- **what each unit's own code does**: _facts_ that each carry the AST node they come from.
+
+Queries derive relations from the facts: call edges, transitively reached facts, recursive groups, declaration dependencies, order interference and decision points. The engine reports facts and uncertainty. Deciding what they mean (a lint error, a complexity score, a refactoring hazard) is up to the consumer.
+
+It is not a lint framework and contains no rule.
 
 ## Install
 
 ```bash
-npm install @gabroberge/typescript-class-analyzer
+npm install @gabroberge/typescript-semantics
 ```
+
+The API is typed with the ESTree and `SourceCode` types of `@oxlint/plugins`. In an oxlint rule, pass `context.sourceCode`. In an ESLint rule, or standalone, parse with `typescript-eslint`, build a `SourceCode` with the scope manager and parent links, and cast it to that type. The engine only uses the scope manager, `getScope`, `getDeclaredVariables` and `getText`.
 
 ## Usage
 
 ```ts
-import type { ClassAssumptions } from "@gabroberge/typescript-class-analyzer";
 import {
-	analyzeMembers,
-	blockedMoves,
-	constrainedOrder,
-	initializationConstraints
-} from "@gabroberge/typescript-class-analyzer";
+	analyzeModule,
+	cyclicComponents,
+	declarationDependencies,
+	reachedFacts,
+	unitInterference
+} from "@gabroberge/typescript-semantics";
 
-// `cell()` and `derive()` from our store library create callable, signal-like values.
-const assumptions: ClassAssumptions = {
-	assumeCall: (call) =>
-		call.callee.type === "Identifier" && ["cell", "derive"].includes(call.callee.name) ? "signal-factory" : null
-};
+const model = analyzeModule(context.sourceCode);
 
-// Inside an oxlint rule visitor, with `context.sourceCode` and a `ClassBody` node:
-const members = analyzeMembers(body);
-// `preferred(left, right)` is the caller's comparison: groups, visibility, names...
-const conflictAt = initializationConstraints(context.sourceCode, body, members, assumptions);
+// Mutually dependent declarations.
+const dependencies = declarationDependencies(model);
+const ids = [...model.declarations.keys()];
+const cycles = cyclicComponents(ids, (id) =>
+	dependencies.filter((dependency) => dependency.from === id).map((dependency) => dependency.to)
+);
 
-const order = constrainedOrder(members, preferred, (earlier, later) => conflictAt(earlier, later) !== "none");
-for (const { earlier, later } of blockedMoves(members, preferred, conflictAt)) {
-	// Report: `later` would move above `earlier`, but their side effects may interact.
+// Everything a method may do, including through the methods it calls.
+for (const { fact, path } of reachedFacts(model, methodUnitId)) {
+	// `fact.node` is the evidence; `path` is the chain of call edges leading there.
 }
+
+// Could running these two units in the other order change anything?
+const { kind, evidence } = unitInterference(model, firstUnitId, secondUnitId);
 ```
 
-A real consumer should resolve the callee through scope analysis (an import of a known module, aliases and namespaces included) rather than by name alone, so a local function that happens to share a name stays unknown code.
-
-The API is typed with the ESTree and `SourceCode` types of `@oxlint/plugins` (installed as a dependency). In an ESLint rule, parse with `typescript-eslint` and cast `context.sourceCode` and the `ClassBody` node to those types; the analysis only uses `getScope` and the scope manager's references, which both provide.
-
-## API
-
-| Export                      | Role                                                                                                                                                                  |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `analyzeMembers`            | Describe every element of a class body: key, timeline, visibility, `static`, overload                                                                                 |
-| `initializationConstraints` | A memoized `(earlier, later) => Conflict` lookup: how two members, in source order, constrain each other                                                              |
-| `constrainedOrder`          | A greedy topological order: the preferred free item goes next, constrained pairs keep their source order                                                              |
-| `blockedMoves`              | Pairs the preferred order would swap but an `uncertain` conflict holds back                                                                                           |
-| `hasInertKey`               | Whether a member's key is static or a computed literal, name or dotted name, assumed to run no code (see below)                                                       |
-| `NO_ASSUMPTIONS`            | Assumptions that treat every call outside the class's own code as unknown: a side effect that runs its callbacks right away                                           |
-| `ClassAssumptions`          | `{ assumeCall(call): CallAssumption \| null }`, what the caller knows about outside calls                                                                             |
-| `CallAssumption`            | `"factory"` or `"signal-factory"`                                                                                                                                     |
-| `AnalyzedMember`            | `index`, `key` (`#name` for a private name, `null` for a computed key that is not a string or number literal), `node`, `overload`, `static`, `timeline`, `visibility` |
-| `Conflict`                  | `"definite"`, `"uncertain"` or `"none"`                                                                                                                               |
-| `Timeline`                  | `"instance"` or `"static"`                                                                                                                                            |
-| `Visibility`                | `"public"`, `"protected"` or `"private"`                                                                                                                              |
-| `BlockedMove`               | `{ earlier, later }`                                                                                                                                                  |
-
-`initializationConstraints` expects the members returned by `analyzeMembers(body)` for the same body, or records extending them. The source code object must provide scope analysis (`context.sourceCode` in an oxlint or ESLint rule).
-
-## How the analysis works
-
-### Timelines
-
-Field initializers run in source order. Instance initializers run when an instance is constructed; static initializers and static blocks run once, when the class is defined. These are two separate timelines, and members of different timelines never constrain each other. Methods, accessors, the constructor, index signatures, `declare` fields and abstract members run nothing while the class is set up: their timeline is `null`, and they never constrain an initializer. Their position can still matter through a computed key (see `hasInertKey`) or a decorator.
-
-### Eager and deferred code
-
-An initializer's own code runs eagerly, and so does everything it reaches: a method it calls through `this.method()`, a getter or setter it touches, transitively, with each method body analyzed as this class declares it. Cycles are followed once. An immediately invoked function literal is analyzed in place.
-
-A function literal that is only stored is deferred: an arrow function assigned to a field, a function placed in an object or array literal, or a function passed to a call assumed to be a `factory` or `signal-factory`. Deferred code does not constrain the order by itself.
-
-A function passed to unknown code is assumed to run right away, so its reads and side effects count for the initializer that passed it.
-
-### Stored function references
-
-A field holding a function literal, or the result of a `signal-factory` call, is a function field: calling it runs only code the analysis can see. An initializer that calls such a field right away (`total = this.doubled()`) takes on the reads and effects of the functions stored there. So does one that reads the field and hands it on (`run(this.callback)`), because the receiver may call it.
-
-Calling any other field (`this.service()`, where `service` holds the result of a plain `factory` or of unknown code) is a side effect, since its value may be a function from anywhere.
-
-### Side effects, outside state and opaque code
-
-Beyond the member keys it reads, writes and calls, each initializer carries three flags. These per-initializer records are internal to the analysis; the public result is the `Conflict` between two members.
-
-- `sideEffects`: it may change state outside the instance. Calling unknown code, calling a field whose value is not a known function, `new`, `await`, `yield`, tagged templates, dynamic `import()`, `delete`, and assigning to anything but the instance or a local binding all count.
-- `external`: it reads mutable outside state: a global, a property of another object, or a binding that is reassigned somewhere (`let`, `var`, a parameter, even a function declaration). Imports, enums, `const` bindings and never-reassigned declarations are stable (an import is trusted even though ES imports are live bindings; see the limitations).
-- `opaque`: it may touch any member. `this` escapes (`register(this)`, `const self = this`, the class name used as a value in static code), `super` is used, a member is accessed dynamically (`this[key]`), a member this class does not declare is touched (an inherited one), or a nested class, enum or namespace is declared.
-
-### Definite and uncertain conflicts
-
-Two initializers of the same timeline have a `definite` conflict when one reads or writes a member the other defines, or when one writes a member the other reads or writes. Swapping them may change what one of them observes.
-
-They have an `uncertain` conflict when either one is opaque, when both have side effects, or when one has side effects and the other reads outside state. The swap may or may not be observable.
-
-Otherwise the conflict is `none`. A sorter normally keeps both `definite` and `uncertain` pairs in source order; `blockedMoves` lists the `uncertain` pairs that a preferred order would have swapped, which a lint rule can report without an autofix. A pair already chained by `definite` conflicts is not listed, since no order could swap it.
-
-### Ordering
-
-`constrainedOrder` turns a preferred order and a constraint relation into a final order. Every pair the relation pins (normally every `definite` or `uncertain` conflict) keeps its source order; everything else follows the preference. It is a greedy topological sort: among the members whose constraints are satisfied, the preferred one goes next. A member therefore leaves its preferred place only as far as a constraint forces it; for example, a field that reads an earlier field stays below it, but moves up to just below it if the preference ranks it higher.
-
-Pinned pairs never change relative order, so with a symmetric relation (as conflicts are) the result is a fixed point: running the analysis and the sort again on the reordered class returns the same order. A lint rule built on it does not keep moving the same members on later runs.
-
-### Static blocks and computed keys
-
-A static block can do anything, so it is opaque: it has at least an `uncertain` conflict with every static field. A field whose computed key does not resolve to a string or number literal is opaque too. Computed keys are evaluated in source order when the class is defined. `hasInertKey` is true for a non-computed key or a computed literal, identifier, non-computed member chain (`[Keys.name]`) or expression-free template; anything else may run code, so moving it could reorder that code. An inert key is still assumed to trigger no getter or conversion, and it can read a binding that a non-inert key or a decorator changes: move inert keys freely only when no member of the class has a non-inert key.
+`src/consumer-example.spec.ts` is a complete standalone example. It builds a small report for a NestJS-style module: dependency cycles, shared mutable state, uncertain calls and branch counts per method.
 
 ### Assumptions
 
-Without assumptions (`NO_ASSUMPTIONS`), every call is unknown code (a side effect whose function arguments run right away), except the code the analysis can see: the class's own methods, accessors and function fields called through `this`, and immediately invoked function literals. `ClassAssumptions.assumeCall` lets a caller declare what it knows about outside code, typically a framework's APIs:
+Without assumptions, a call into code outside the module is unknown code. It may do anything, including running the callbacks it receives right away. A consumer that knows a framework can say more:
 
-- `"factory"`: the call neither observes nor changes state another initializer could depend on. Function literals passed to it are stored, not run. Its other arguments are still evaluated and analyzed, so `provide(this.config)` still reads `config`. Its callee is analyzed too unless it is a plain name (`provide`, `lib.provide`), so `this.lib.make()` still reads `lib`.
-- `"signal-factory"`: everything a `factory` is, and fields holding its result are function fields. Calling one runs the functions given to the factory, whose effects count, and counts as reading outside state rather than as a side effect: it conflicts with side-effecting initializers but not with other reads.
+```ts
+const model = analyzeModule(sourceCode, {
+	assumptions: {
+		// Resolve the callee through scope analysis to an import of a known module, not by name alone.
+		assumeCall: (call) => (isAngularImport(call.callee, ["signal", "computed"]) ? "signal-factory" : null)
+	}
+});
+```
 
-### Deliberate limitations
+- `factory`: the call observes and changes no state that other code could depend on, and stores the functions passed to it without running them.
+- `signal-factory`: a `factory` whose result is a signal-like callable. Calling a field that holds one reads only that value's own state.
 
-The analysis is a conservative approximation. A `none` conflict means that no interaction was found under these assumptions, not that a swap is proven unobservable:
+The engine trusts assumptions. A wrong one can hide real behaviour.
 
-- Decorators are not analyzed. They are assumed to move with their member, and their evaluation order is assumed not to matter.
-- Members are analyzed as this class declares them. Overrides in a subclass are not considered, and a `declare` or `abstract` property is treated as a plain field of this class, although a base class or a subclass may implement it as an accessor.
-- Getters, implicit conversions (`toString`, `valueOf`, `Symbol.toPrimitive`) and the iteration protocol (spread, `for...of`) on other objects are assumed to have no side effects; they only count as reading outside state.
-- Imported bindings are trusted to be stable. An ES import is a live binding, so an initializer that calls into a module which reassigns one of its exports can change what another initializer reads from that import.
-- Exceptions are not considered. An initializer that may throw (a property of `undefined`, a mixed `bigint` operation) is not necessarily ordered against a side-effecting one, so a swap can decide whether that side effect runs before construction fails.
-- Member keys are assumed unique, as TypeScript enforces (apart from overloads and getter / setter pairs). Reordering duplicates would change which definition wins.
-- Field semantics are those of ECMAScript (`[[Define]]`, TypeScript's `useDefineForClassFields`). Under the legacy assignment semantics, an initializer may run an inherited setter.
-- A function, once it may run, is analyzed as if it ran to completion; control flow inside it is not considered. `this` inside any function the analysis follows is taken to be the analyzed object.
-- Calls covered by a `ClassAssumptions` answer are trusted entirely. A wrong assumption can hide a real dependency.
+## Model
+
+### Declarations (`model.declarations`)
+
+| Kind         | What                                                                                                                                                                                                                                 |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `class`      | A module-level class declaration, or a class expression bound by a module `const`                                                                                                                                                    |
+| `function`   | A module-level `function` declaration (`reassigned` when the binding is assigned again)                                                                                                                                              |
+| `variable`   | A module-level `const`, `let` or `var`. Includes `reassigned` and `value` (`none`, `function`, `assumed-callable`, `other`)                                                                                                          |
+| `import`     | An imported binding, with `source`, `imported` (`default`, `*` or a name) and `typeOnly`                                                                                                                                             |
+| member kinds | `field`, `accessor-field`, `method`, `getter`, `setter`, `constructor`, `static-block`, `parameter-property`, `index-signature`. Each has its `class`, `key` (`null` when computed), `static`, `visibility`, `signature` and `value` |
+
+Ids (`d0`, `d1`, …) are stable for a given source text. `qualifiedName` (`Cart.#items`) is for display only.
+
+### Units (`model.units`)
+
+A unit is code that runs as a whole. Each unit has:
+
+- `kind`: `module`, `class-definition`, `field-initializer`, `static-block`, `constructor`, `method`, `getter`, `setter` or `function`.
+- `trigger` (when it runs):
+    - `module-evaluation`;
+    - `class-definition`: static fields, static blocks, decorators and computed keys;
+    - `instance-construction`: instance fields and the constructor;
+    - `invocation`.
+- `receiver` (what `this` is):
+    - `instance` or `class` of a module class;
+    - `none`;
+    - `unknown`: a non-arrow function, whose `this` depends on the call.
+- `declaration`, `parent` and `code` (the root nodes of its own code).
+
+Every function literal is its own unit. An arrow function keeps the receiver of the unit around it. Other function literals get an `unknown` receiver.
+
+### Facts (`unit.facts`)
+
+Facts are direct: a fact belongs to the unit whose own code contains it, never to an enclosing unit.
+
+- **`access`**: `read`, `write` or `call` of a target. Each target kind is precise about something different:
+    - `member`: a key of a module class, reached through `this`, the class name, or another module class. `member` is `null` for an undeclared (inherited or dynamic) key. A `#private` name and a string key with the same spelling are distinct.
+    - `binding`: a variable outside the unit. Its `scope` is `module`, `import`, `closure` or `global`. `mutable` is true when the binding can change after its declaration. Bindings local to the unit are not reported.
+    - `property`: a property of another object (a service, a parameter, a global object), whose state belongs to someone else.
+
+    A constructor starts with a `write` of each parameter property. A field initializer ends with a `write` of its own field.
+
+- **`unknown`**: something the model cannot account for. The `reason` names it.
+    - Code outside the model runs: `call`, `construct`, `tagged-template`, `dynamic-import`, `delete`, `suspension` (`await`, `yield`, `for await`).
+    - The receiver or the reach of the code is unknown: `receiver-escape`, `unknown-receiver`, `super`, `dynamic-member`, `eval`, `unanalyzed-declaration` (a nested class, enum or namespace), `unsupported-target`.
+- **`function`**: a function literal in the unit's code and what happens to it:
+    - `stored`;
+    - `invoked` (an IIFE);
+    - `passed-to-unknown`;
+    - `passed-to-assumed`;
+    - `bound-locally` (a local binding the unit may call).
+
+## Queries
+
+| Export                                                             | Result                                                                                                                                                                                                                                                         |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `callEdgesFrom(model, unit)`, `callGraph(model)`                   | `CallEdge`s with the fact they come from. `calls` covers methods, functions, getters, setters, and fields holding a function. `invokes` is an IIFE. `may-run` is a callback handed on or a method read as a value. `defines` means the function is only stored |
+| `reachedFacts(model, unit)`                                        | Every fact that may happen while the unit runs, each with a shortest path of call edges. `defines` edges are not followed                                                                                                                                      |
+| `recursiveUnitGroups(model)`                                       | Units that may run each other in a cycle                                                                                                                                                                                                                       |
+| `declarationDependencies(model)`, `ownerOf`                        | Direct `read`, `write` and `call` dependencies between declarations. Nested functions belong to the nearest enclosing declaration, and module code is `from: null`                                                                                             |
+| `unitInterference(model, a, b)`                                    | `definite` (the two touch the same tracked location and one writes it, or one calls what the other assigns), `possible` (only uncertainty relates them) or `none`, with evidence                                                                               |
+| `decisionPoints(model, unit)`, `decisionPointsIn`, `guardOf`       | Branching constructs (`if`, `?:`, `&&`, `\|\|`, `??`, logical assignment, defaults, `switch`, loops, `catch`, optional links), each with its outcomes. Includes the Istanbul coverage kind where one exists, and which outcome guards a node                   |
+| `stronglyConnectedComponents`, `cyclicComponents`, `reachableFrom` | Generic, deterministic graph algorithms the queries use                                                                                                                                                                                                        |
+
+## Guarantees and distinctions
+
+- **Syntax vs resolution:** targets come from scope analysis. A name the scope manager cannot resolve is a `global` binding, never a guess.
+- **Direct vs transitive:** facts are direct. Only `reachedFacts`, `unitInterference` and the graph algorithms follow relations.
+- **Control flow vs calls:** units and call edges describe which code may run other code. Decision points describe branching inside one unit. The two are kept separate.
+- **Proven vs possible:** an `access` or `function` fact means the code is written so that it may happen. It does not prove that it runs. `unknown` facts mark what the model cannot see. `unitInterference` separates `definite` evidence from `possible` evidence.
+- **Static vs runtime:** a unit, edge or decision point is static structure. Being reachable in the model, or being unguarded, is not proof of execution. A decision point is a branch in the source, not a branch exercised by tests. Mapping coverage onto it is the consumer's job (`coverageKind` names the matching Istanbul branch type, which does not always match one to one).
+- **Determinism:** ids, facts, edges and query results are ordered by source position and are stable for a given source text.
+
+## Limitations
+
+These are the gaps the engine knows about. A consumer that relies on a stronger guarantee must handle them.
+
+- **One module at a time:** imports are opaque. A call to an imported function is an `access` plus an `unknown` `call`.
+- **Nested declarations:** a class, enum or namespace nested inside a unit is reported as `unanalyzed-declaration`. Its decision points stay with the enclosing unit.
+- **Aliasing and identity:** closure bindings, properties of other objects, and members of a module class reached through aliases (`const self = this`, a parameter, a module class handed to outside code) are not tracked as locations.
+    - `unitInterference` relates them only through outside effects.
+    - `this` escaping is reported as `receiver-escape`. The class value escaping from module code is not.
+- **Inheritance:** an undeclared member key (`member: null`) may be inherited. `super` is `unknown`. Subclasses in other modules are not seen.
+- **Fields without an initializer:** they define the field to `undefined` at construction but have no unit, so no `write` fact.
+- **Imports are treated as immutable**, although ES imports are live bindings.
+- **Call edges are may-relations:** a `may-run` edge (a callback handed to outside code) may never run, and a `calls` edge sits behind whatever decisions guard it.
+- **Interference is a may-analysis under these limits:** `none` means nothing in the model relates the two units. It does not prove independence.
+- **No types:** the engine uses no type information. A call through a value whose type is a function is still a call of a `property` or `binding`.
