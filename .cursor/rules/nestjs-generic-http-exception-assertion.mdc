@@ -1,0 +1,28 @@
+---
+description: Resolve generic Nest HTTP exception assertions that require behavioral inspection.
+globs: "**/*.spec.ts"
+alwaysApply: false
+---
+
+# Generic HTTP exception assertions
+
+Run the lint rule first.
+
+For remaining `nestjs/no-generic-http-exception-assertion` warnings, use the [fix-nestjs-generic-http-exception-assertion](.cursor/skills/fix-nestjs-generic-http-exception-assertion/SKILL.md) skill.
+
+The diagnostic is the destination. Do not choose a different assertion shape.
+
+- `useValidationError` — `toHaveValidationError` with the named validation message
+- `useSpecificException` — `toThrow(new SpecificException("..."))` or an existing domain error
+
+Treat each warning as an inspection point. Determine the behavior the test claims to prove, ensure the setup actually reaches that behavior, and assert that contract.
+
+Do not mechanically invent messages or suppress warnings merely to make lint green.
+
+Do not change production behavior merely to silence the lint rule.
+
+However, if the intended failure path has no distinguishing observable because production throws an anonymous generic HTTP exception, inspect whether adding a stable descriptive message is an appropriate improvement to the existing error contract.
+
+A production change is appropriate only when the message describes an existing failure condition; it must not invent a new behavior or alter control flow.
+
+When doing so, update the production exception and assert that exact existing contract in the test.

@@ -1,0 +1,30 @@
+---
+description: Apply the Nest test grammar when naming suite, subject, or scenario describe blocks
+globs: "**/*.spec.ts"
+alwaysApply: false
+---
+
+# Nest test grammar
+
+When naming or restructuring a `describe`, follow [nestjs-test-grammar](.cursor/skills/nestjs-test-grammar/SKILL.md).
+
+    suite describe    = file / overall suite
+    nested describe   = specific subject or scenario
+    scenario describe = condition
+    beforeEach        = scenario setup
+    it/test           = behavioral outcome
+
+A nested `describe` does not have to be a `when` scenario. For `no-test-outside-describe`, prefer a subject or thematic name when there is no condition to extract.
+
+Do not restructure a spec only to apply this grammar. Use it when a `describe` is being added or renamed.
+
+A `when` names a condition that can vary. If the only context is that the operation runs, or the title is an arbitrary fixture value, use a subject `describe` instead. Keep the behavioral meaning of the previous title.
+
+Lint rules own the slices they can detect. Do not repeat those checks here:
+
+- `nestjs/no-test-outside-describe` — nesting below the suite
+- `nestjs/no-when-in-suite-title` — a suite title must not start with `when`
+- `nestjs/no-when-in-test-title` — `when` in an `it` / `test` title
+- `nestjs/no-if-in-test-title` — `if` in an `it` / `test` title
+- `nestjs/no-arrange-in-test` — mock and spy setup inside the test
+- `nestjs/ordered-dto-test-groups` — DTO suite children: setup, then `when` groups, then property groups alphabetically

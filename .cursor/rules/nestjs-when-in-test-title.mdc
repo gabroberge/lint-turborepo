@@ -1,0 +1,15 @@
+---
+description: Resolve nestjs/no-when-in-test-title with the ESLint autofix first; judge only violations that remain
+globs: "**/*.spec.ts"
+alwaysApply: false
+---
+
+# `nestjs/no-when-in-test-title`
+
+First apply the ESLint autofix for `nestjs/no-when-in-test-title`. If violations remain, follow [fix-nestjs-when-in-test-title](.cursor/skills/fix-nestjs-when-in-test-title/SKILL.md).
+
+**Remember:** a remaining violation means the mechanical fixer could not safely split the title. That requires judgment, not a manual replay of the fixer.
+
+**Do not:** disable the rule, or invent an interpretation merely to make lint green.
+
+**Do:** repair only when the condition and outcome are clear from the test. Otherwise leave the violation and report the ambiguity.

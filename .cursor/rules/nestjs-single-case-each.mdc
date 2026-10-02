@@ -1,0 +1,15 @@
+---
+description: Resolve nestjs/no-single-case-each by asking why a one-case .each exists; inline only when the evidence agrees
+globs: "**/*.spec.ts"
+alwaysApply: false
+---
+
+# `nestjs/no-single-case-each`
+
+When ESLint reports a single-case `it.each`, `test.each`, or `describe.each` in `*.spec.ts`, follow the repository skill [fix-nestjs-single-case-each](.cursor/skills/fix-nestjs-single-case-each/SKILL.md).
+
+**Remember:** a one-case `.each` is structurally suspicious. Inline when the title, the case, and the structure agree. When they conflict, ask why there is only one case.
+
+**Do not:** inline a conflicting case to go green, invent a contract from the current validators, disable the rule, or restructure unrelated tests.
+
+**Do:** if this test makes the reading confident, inline an accidental table or complete an incomplete one. If it does not, leave the test and report the conflict.

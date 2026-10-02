@@ -1,0 +1,15 @@
+---
+description: Resolve nestjs/require-expect by observing the named behavior, not by adding any expect
+globs: "**/*.spec.ts"
+alwaysApply: false
+---
+
+# `nestjs/require-expect`
+
+When ESLint reports a missing `expect` in `*.spec.ts`, follow the repository skill [fix-nestjs-require-expect](.cursor/skills/fix-nestjs-require-expect/SKILL.md).
+
+**Remember:** executing code without observing an outcome is not an automated behavioral proof. The goal is not `test has no expect` → add any `expect`.
+
+**Do not:** disable the rule, add a meaningless assertion, assert an earlier unrelated outcome, invent a contract when the intended behavior is unclear, or dismantle a reusable assertion helper just to satisfy the lint.
+
+**Do:** determine the observable contract the test intended to prove, assert the cheapest outcome that proves it, repair the scenario if the named behavior is never reached, remove a redundant test, or leave the violation and report the ambiguity — including helpers the mechanical rule cannot inspect.

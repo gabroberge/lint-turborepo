@@ -1,0 +1,17 @@
+---
+description: Resolve nestjs/no-redundant-wiring-test with the ESLint autofix first; judge only violations the fixer leaves
+globs: "**/*.spec.ts"
+alwaysApply: false
+---
+
+# `nestjs/no-redundant-wiring-test`
+
+First apply the ESLint autofix for `nestjs/no-redundant-wiring-test`. If violations remain, follow [fix-nestjs-redundant-wiring-test](.cursor/skills/fix-nestjs-redundant-wiring-test/SKILL.md).
+
+The rule reports a test whose body is only `expect(value).toBeDefined()` when its suite, the outermost `describe`, already contains another executable test. The title is ignored.
+
+**Remember:** the autofix removes that test statement and nothing else. A remaining violation means removal would change surrounding syntax, or a comment might belong to something else. Judge that leftover. Do not replay the fixer by hand.
+
+**Do not:** disable the rule, copy the wiring assertions into another test, add a test so this one can be deleted, or remove setup, mocks, or bindings because they now look unused.
+
+**Do:** let the autofix delete every wiring test it can remove safely. For a violation it leaves, remove only that test, and keep the comment or surrounding syntax the fixer would not take.

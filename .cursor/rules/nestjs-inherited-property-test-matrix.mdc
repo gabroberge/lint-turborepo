@@ -1,0 +1,15 @@
+---
+description: Resolve nestjs/no-inherited-property-test-matrix by keeping detailed coverage on the declaring type and reducing subclass coverage to composition or wiring
+globs: "**/*.spec.ts"
+alwaysApply: false
+---
+
+# `nestjs/no-inherited-property-test-matrix`
+
+When ESLint reports inherited-property coverage in `*.spec.ts`, follow the repository skill [fix-nestjs-inherited-property-test-matrix](.cursor/skills/fix-nestjs-inherited-property-test-matrix/SKILL.md).
+
+**Remember:** detailed behavioral coverage belongs to the type that declares the property. A lint finding is an inspection point. Do not mechanically delete every reported test.
+
+**Do not:** reproduce the declaring type's behavioral matrix in the subclass, keep several inherited-property cases merely because they use different values, invent subclass-specific meaning for entirely inherited behavior, or force an ambiguous case green.
+
+**Do:** remove subclass tests that only repeat behavior the declaring type already owns. Keep or reshape coverage that proves meaningful composition. For one inherited property, at most one isolated wiring or smoke case should normally remain. If ownership or the intended composition cannot be determined confidently, leave the violation and report the ambiguity.

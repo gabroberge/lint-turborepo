@@ -1,0 +1,85 @@
+---
+description: Vitest spies must be created in beforeEach
+globs:
+    - "**/*.spec.ts"
+alwaysApply: false
+---
+
+# Vitest spies
+
+Every `vi.spyOn(...)` is test Arrange and must be created inside a `beforeEach`.
+
+This applies regardless of where the spy is currently created. A `vi.spyOn(...)` must not execute:
+
+- inside `it` or `test`
+- directly inside a `describe`
+- at module scope
+- inside another setup location instead of `beforeEach`
+
+## Spy reference needed by the test
+
+Declare the reference at the narrowest relevant `describe` scope and assign it in `beforeEach`.
+
+```ts
+let methodSpy: ReturnType<typeof vi.spyOn>;
+
+beforeEach(() => {
+    methodSpy = vi.spyOn(service, "method");
+});
+
+it("should call the method", async () => {
+    await service.execute();
+
+    expect(methodSpy).toHaveBeenCalledWith("value");
+});
+```
+
+## Spy reference not needed
+
+Do not introduce a variable unnecessarily.
+
+```ts
+beforeEach(() => {
+    vi.spyOn(service, "method").mockResolvedValue(value);
+});
+```
+
+## Configuration belongs with creation
+
+Do not create the spy elsewhere and move only its configuration into `beforeEach`.
+
+Prefer:
+
+```ts
+beforeEach(() => {
+    methodSpy = vi.spyOn(service, "method").mockResolvedValue(value);
+});
+```
+
+over:
+
+```ts
+const methodSpy = vi.spyOn(service, "method");
+
+beforeEach(() => {
+    methodSpy.mockResolvedValue(value);
+});
+```
+
+## Scope
+
+Place the `beforeEach` at the narrowest scenario scope that owns the spy.
+
+Do not hoist scenario-specific spies to a broader `beforeEach` merely to share setup.
+
+If several sibling tests genuinely require the same spy, their nearest meaningful common `describe` may own it.
+
+Do not create `describe` blocks for implementation details such as individual mocks. `describe` expresses behavior or conditions.
+
+## Removing unnecessary spies
+
+Before moving an existing spy, determine whether it is actually needed.
+
+If neither its behavior nor its observations contribute to the test, remove it instead of relocating it.
+
+Do not preserve setup solely to satisfy the expected test structure.

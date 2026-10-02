@@ -1,0 +1,15 @@
+---
+description: Resolve nestjs/no-when-in-suite-title by naming the suite describe for the file or unit and nesting the when condition
+globs: "**/*.spec.ts"
+alwaysApply: false
+---
+
+# `nestjs/no-when-in-suite-title`
+
+When ESLint reports a suite `describe` title that starts with `when` in `*.spec.ts`, follow [fix-nestjs-when-in-suite-title](.cursor/skills/fix-nestjs-when-in-suite-title/SKILL.md).
+
+**Remember:** the outermost `describe` is the suite. A title whose first word is `when` is a scenario condition. The rule does not autofix, because it cannot invent the suite name.
+
+**Do not:** leave `when` on the suite, invent a unit the file does not show, insert a subject `describe` or any other level between the suite and the scenario, treat `if` as `when`, or replay `no-when-in-test-title` / `no-test-outside-describe` as part of this fix.
+
+**Do:** name the suite for the file or the unit under test, nest the existing `when` condition directly under it, and stop. Use the test grammar skill only to choose the suite name. If the suite name is not clear, leave the violation and report the ambiguity.

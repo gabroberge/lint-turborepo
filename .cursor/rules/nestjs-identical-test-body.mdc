@@ -1,0 +1,15 @@
+---
+description: Resolve nestjs/no-identical-test-body by investigating test intent, not mechanical deduplication
+globs: "**/*.spec.ts"
+alwaysApply: false
+---
+
+# `nestjs/no-identical-test-body`
+
+When ESLint reports identical test bodies in `*.spec.ts`, follow the repository skill [fix-nestjs-identical-test-body](.cursor/skills/fix-nestjs-identical-test-body/SKILL.md).
+
+**Remember:** identical bodies mean investigate intent—titles, `describe` context, setup, inputs, and production code—not “delete the second test” or merge every `it.each` that shares an assertion.
+
+**Do not:** disable the rule, weaken assertions, rename tests to match wrong bodies, or merge datasets that prove different invariants (e.g. wrong type vs wrong UUID version).
+
+**Do:** smallest truthful fix—remove true duplicates, combine only same-behavior parameter tables, use nested `describe` + `beforeEach` for real scenario splits, repair tests whose titles claim behavior the assertions do not observe.

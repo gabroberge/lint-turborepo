@@ -1,0 +1,15 @@
+---
+description: Resolve nestjs/no-arrange-in-test by moving scenario setup out of it into describe/beforeEach
+globs: "**/*.spec.ts"
+alwaysApply: false
+---
+
+# `nestjs/no-arrange-in-test`
+
+When ESLint reports Arrange inside an `it` / `test` in `*.spec.ts`, follow [fix-nestjs-arrange-in-test](.cursor/skills/fix-nestjs-arrange-in-test/SKILL.md).
+
+**Remember:** a test body is Act + Assert. Scenario setup belongs in the surrounding `describe` and its `beforeEach`. Do not mechanically move every statement before the Act.
+
+**Do not:** prefix mock configuration with `void`, add `await` to synchronous mock setup, create one `describe` per mock, hoist scenario-specific setup into a broad parent, hide Arrange in a helper invented for the lint, preserve default mock configuration that is already the mock's behavior, or change what the test proves.
+
+**Do:** move only the statements that establish the scenario. Put them in the narrowest meaningful `beforeEach`. Name new scenario describes for behavioral conditions, not implementation details. Use the test grammar skill when naming a new `describe`. After the changes, lint and run the affected specs.

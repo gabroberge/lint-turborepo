@@ -1,0 +1,24 @@
+---
+description: Resolve nestjs/no-test-outside-describe by nesting the test inside a describe below the suite describe. Structural nesting does not require title splitting or a when scenario.
+globs:
+    - "**/*.spec.ts"
+alwaysApply: false
+---
+
+# `nestjs/no-test-outside-describe`
+
+The rule reports an `it` / `test` that is outside every `describe`, or written directly in the outermost suite `describe`. It counts nesting. It does not read titles.
+
+When resolving `nestjs/no-test-outside-describe`:
+
+1. Inspect the test and its surrounding suite.
+2. Use the `fix-nestjs-test-outside-describe` skill to nest the test below the suite.
+3. Use the `nestjs-test-grammar` skill to name the nested `describe`. Prefer a subject or thematic group when there is no real condition to extract. A nested `describe` does not have to start with `when`.
+4. Split the test title only when a scenario `describe` now carries a condition that would be duplicated in the title — not for structural nesting alone. Do not replay `nestjs/no-when-in-test-title` unless that rule also applies.
+5. Preserve the behavior the test exercises and observes.
+
+Do not add a `describe` merely to satisfy the lint rule.
+
+Do not manufacture a `when` scenario or pull context from fixture literals when the original title already states the behavioral outcome or category.
+
+Leave unrelated test-quality issues to their own rules and skills.

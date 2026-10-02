@@ -1,0 +1,15 @@
+---
+description: Resolve nestjs/no-tautological-equality by making the assertion independently capable of detecting a regression
+globs: "**/*.spec.ts"
+alwaysApply: false
+---
+
+# `nestjs/no-tautological-equality`
+
+When ESLint reports a tautological equality assertion in `*.spec.ts`, follow the repository skill [fix-nestjs-tautological-equality](.cursor/skills/fix-nestjs-tautological-equality/SKILL.md).
+
+**Remember:** a tautological assertion is evidence that the test is not observing the behavior it claims to protect. Do not manufacture a different expected value from the actual.
+
+**Do not:** disable the rule, derive the expected value from the actual, spread/clone/serialize the actual, reimplement the production algorithm to manufacture an expected value, or invent a contract when the intended outcome is unclear.
+
+**Do:** determine the observable behavior the test intended to prove, repair with an independently derived expected outcome, remove only a redundant tautology, or leave the violation and report the ambiguity.

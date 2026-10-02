@@ -1,0 +1,15 @@
+---
+description: Resolve nestjs/no-if-in-test-title by separating behavioral outcomes from conditions when the test structure supports it
+globs: "**/*.spec.ts"
+alwaysApply: false
+---
+
+# `nestjs/no-if-in-test-title`
+
+When ESLint reports an `if` in an `it` / `test` title in `*.spec.ts`, follow the repository skill [fix-nestjs-if-in-test-title](.cursor/skills/fix-nestjs-if-in-test-title/SKILL.md).
+
+**Remember:** an `if` clause is not mechanically a `when`. When it is a condition, move it to a scenario `describe` and keep the behavioral outcome in the `it` / `test` title. Suite and subject naming belong to the test grammar.
+
+**Do not:** rewrite the title by string manipulation, invent a condition the test does not establish, change fixtures, mocks, production code, or assertions merely to satisfy the rule, restructure unrelated neighboring tests, suppress the rule because restructuring is inconvenient, or force an ambiguous case green.
+
+**Do:** move scenario context into `describe` and leave the observable outcome in the `it` / `test` title when that is what the `if` represents. When conditional wording is intentionally the clearest statement of the behavior, suppress the rule locally with a concise explanation. Otherwise leave the violation and report the ambiguity.

@@ -1,0 +1,17 @@
+---
+description: Resolve nestjs/ordered-dto-test-groups with the ESLint autofix first; inspect only violations the fixer leaves
+globs: "**/*.dto.spec.ts"
+alwaysApply: false
+---
+
+# `nestjs/ordered-dto-test-groups`
+
+First apply the ESLint autofix for `nestjs/ordered-dto-test-groups`. If violations remain, follow [fix-nestjs-ordered-dto-test-groups](.cursor/skills/fix-nestjs-ordered-dto-test-groups/SKILL.md).
+
+The rule reorders direct children of the DTO suite `describe`: setup, then DTO-level `when` groups in source order, then single-property `describe` groups alphabetically.
+
+**Remember:** the autofix only reorders complete top-level statements it can classify. A remaining violation means a direct child could not be classified or moved safely. Do not replay that ordering by hand.
+
+**Do not:** disable the rule, rename titles to force a category, regroup property tests, move scenarios into or out of property groups, or reorder DTO-level `when` groups relative to each other.
+
+**Do:** let the autofix perform the deterministic reordering. For a leftover, inspect why that child could not be classified or moved, and make only the smallest structural change that makes ordering mechanical.
