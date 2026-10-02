@@ -47,8 +47,16 @@ export function resolveIdentifier(walker: Walker, identifier: IdentifierNode): R
 	}
 
 	if (isInside(definition.name, unit.code)) {
-		const declarator = definition.node;
-		return { initializer: declarator.type === "VariableDeclarator" ? declarator.init : null, kind: "local" };
+		// A local assigned again may hold anything, whatever it was initialized with.
+		const node = definition.node;
+		const initializer = isReassigned(variable)
+			? null
+			: node.type === "VariableDeclarator"
+				? node.init
+				: definition.type === "FunctionName"
+					? node
+					: null;
+		return { initializer, kind: "local" };
 	}
 
 	const mutable = definition.type === "Parameter" || isReassigned(variable);

@@ -7,10 +7,14 @@ import type { UnitKind } from "../model/unit";
  * accessors, read or written): a function's or method's body, an accessor's
  * bodies, or the function literals a field or variable was initialized with.
  */
-export function callableUnits(model: ModuleModel, declaration: DeclarationId, kinds: readonly UnitKind[]): UnitId[] {
+export function callableUnits(
+	model: ModuleModel,
+	declarations: readonly DeclarationId[],
+	kinds: readonly UnitKind[]
+): UnitId[] {
 	const units: UnitId[] = [];
 	for (const unit of model.units.values()) {
-		if (unit.declaration === declaration && kinds.includes(unit.kind)) {
+		if (unit.declaration !== null && declarations.includes(unit.declaration) && kinds.includes(unit.kind)) {
 			units.push(unit.id);
 		}
 	}

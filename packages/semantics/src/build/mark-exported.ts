@@ -18,10 +18,16 @@ export function markExported(draft: ModelDraft, program: ESTree.Program): void {
 			}
 
 			const variable = resolveVariable(draft.sourceCode, local);
-			const id = variable === null ? undefined : draft.declarationByVariable.get(variable);
-			const declaration = id === undefined ? undefined : draft.declarations.get(id);
-			if (declaration !== undefined && "exported" in declaration) {
-				declaration.exported = true;
+			if (variable === null) {
+				continue;
+			}
+
+			// A class is indexed by its binding apart from the declarations (a `const` bound to a class expression has both).
+			for (const id of [draft.declarationByVariable.get(variable), draft.classByVariable.get(variable)]) {
+				const declaration = id === undefined ? undefined : draft.declarations.get(id);
+				if (declaration !== undefined && "exported" in declaration) {
+					declaration.exported = true;
+				}
 			}
 		}
 	}
