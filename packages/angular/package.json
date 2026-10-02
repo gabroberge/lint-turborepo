@@ -3,7 +3,17 @@
 	"version": "0.1.0",
 	"private": false,
 	"description": "",
-	"keywords": [],
+	"keywords": [
+		"angular",
+		"eslint",
+		"eslint-plugin",
+		"eslintplugin",
+		"immutability",
+		"output",
+		"oxlint",
+		"readonly",
+		"resource"
+	],
 	"homepage": "https://github.com/gabroberge/lint-turborepo#readme",
 	"bugs": "https://github.com/gabroberge/lint-turborepo/issues",
 	"license": "MIT",

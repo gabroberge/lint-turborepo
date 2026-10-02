@@ -3,7 +3,14 @@
 	"version": "0.1.1",
 	"private": false,
 	"description": "",
-	"keywords": [],
+	"keywords": [
+		"eslint",
+		"eslint-plugin",
+		"eslintplugin",
+		"nestjs",
+		"oxlint",
+		"routes"
+	],
 	"homepage": "https://github.com/gabroberge/lint-turborepo#readme",
 	"bugs": "https://github.com/gabroberge/lint-turborepo/issues",
 	"license": "MIT",
