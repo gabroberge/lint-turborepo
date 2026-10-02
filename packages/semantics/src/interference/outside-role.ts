@@ -1,4 +1,5 @@
 import type { Fact } from "../model/fact";
+import type { DeclarationId } from "../model/ids";
 import type { ModuleModel } from "../model/module-model";
 
 const OPAQUE_REASONS: ReadonlySet<string> = new Set([
@@ -13,7 +14,9 @@ const OPAQUE_REASONS: ReadonlySet<string> = new Set([
 
 /**
  * How a fact relates to state the model does not track:
- * - `opaque`: the code may touch anything (see `InterferenceReason`);
+ * - `opaque`: the code may touch anything (see `InterferenceReason`), including
+ *   any access to a member a module class with a superclass does not declare:
+ *   an inherited accessor or method runs unseen code on the same receiver;
  * - `effect`: it runs outside code (an unknown call, `new`, a suspension…),
  *   calls a value the model cannot follow (a field holding any value, a
  *   parameter property, a getter's result, an abstract or undeclared member), or writes a closure binding
@@ -44,6 +47,10 @@ export function outsideRole(model: ModuleModel, fact: Fact): "effect" | "externa
 		return target.mutable && mode === "read" ? "external" : null;
 	}
 
+	if (target.member === null && hasSuperclass(model, target.class)) {
+		return "opaque";
+	}
+
 	if (mode !== "call") {
 		return null;
 	}
@@ -60,4 +67,9 @@ export function outsideRole(model: ModuleModel, fact: Fact): "effect" | "externa
 	// A method's own body is followed; an abstract or overload-only method, or
 	// the value a getter returns, is code the model cannot see.
 	return member.kind === "method" && !member.signature ? null : "effect";
+}
+
+function hasSuperclass(model: ModuleModel, classId: DeclarationId): boolean {
+	const declaration = model.declarations.get(classId);
+	return declaration?.kind === "class" && "superClass" in declaration.node && declaration.node.superClass !== null;
 }

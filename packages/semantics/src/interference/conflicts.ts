@@ -7,11 +7,7 @@ import { sameLocation } from "./same-location";
  * function stored before it, so assigning first changes what runs).
  */
 export function conflicts(left: AccessFact, right: AccessFact): boolean {
-	if (left.mode === "read" && right.mode === "read") {
-		return false;
-	}
-
-	if (left.mode === "call" && right.mode === "call") {
+	if (left.mode !== "write" && right.mode !== "write") {
 		return false;
 	}
 
