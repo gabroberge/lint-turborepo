@@ -1,6 +1,6 @@
 # @gabroberge/eslint-plugin-angular
 
-Lint rules that keep Angular resources immutable and outputs protected. The plugin registers as `angular`.
+ESLint and Oxlint rules for Angular classes. The plugin registers as `angular`.
 
 ## Install
 
@@ -16,6 +16,12 @@ npm install -D @gabroberge/eslint-plugin-angular
 import angular from "@gabroberge/eslint-plugin-angular";
 
 export default [angular.configs.recommended];
+```
+
+To enable a rule that is not in `recommended`, add it after the preset:
+
+```js
+export default [angular.configs.recommended, { rules: { "angular/ordered-class-members": "error" } }];
 ```
 
 ### Oxlint
@@ -39,11 +45,10 @@ export default [angular.configs.recommended];
 
 ## Rules
 
-| Rule                                | Recommended | Fix | Default | What it reports                                                                          |
-| ----------------------------------- | ----------- | --- | ------- | ---------------------------------------------------------------------------------------- |
-| `angular/prefer-immutable-resource` | yes         | yes | error   | A `resource` / `rxResource` field, or a `ResourceRef` annotation, that is not `readonly` |
-| `angular/prefer-protected-outputs`  | yes         | yes | error   | An `output()` field, or an `OutputEmitterRef` annotation, that is not `protected`        |
+| Rule                                                                                                                              | Recommended | Fix | Description                                |
+| --------------------------------------------------------------------------------------------------------------------------------- | ----------- | --- | ------------------------------------------ |
+| [`angular/ordered-class-members`](https://github.com/gabroberge/lint-turborepo/blob/master/docs/ordered-class-members.md)         | no          | yes | Order class members by configurable groups |
+| [`angular/prefer-immutable-resource`](https://github.com/gabroberge/lint-turborepo/blob/master/docs/prefer-immutable-resource.md) | yes         | yes | Require `readonly` on resource fields      |
+| [`angular/prefer-protected-outputs`](https://github.com/gabroberge/lint-turborepo/blob/master/docs/prefer-protected-outputs.md)   | yes         | yes | Require `protected` on output fields       |
 
-`prefer-immutable-resource` only recognizes a direct `resource` / `rxResource` / `ResourceRef` identifier. Autofix inserts `readonly` before the property name.
-
-`prefer-protected-outputs` only recognizes a direct `output` / `OutputEmitterRef` identifier. Autofix rewrites `public` / `private` to `protected`, or inserts `protected` when no accessibility keyword is present.
+All rules default to `error`.
