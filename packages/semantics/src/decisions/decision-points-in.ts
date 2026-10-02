@@ -4,11 +4,20 @@ import type { ESTree } from "@oxlint/plugins";
 import { decisionAt } from "./decision-at";
 import type { DecisionPoint } from "./decision-point";
 
-/** TypeScript nodes that contain runtime code. Every other `TS*` node is type-only and skipped. */
+/**
+ * TypeScript nodes that contain runtime code. Every other `TS*` node is
+ * type-only and skipped, and so are ambient (`declare`) namespaces and
+ * enums and `const` enums, which are erased.
+ */
 const runtimeTypeScriptNodes: ReadonlySet<string> = new Set([
 	"TSAsExpression",
+	"TSEnumBody",
+	"TSEnumDeclaration",
+	"TSEnumMember",
 	"TSExportAssignment",
 	"TSInstantiationExpression",
+	"TSModuleBlock",
+	"TSModuleDeclaration",
 	"TSNonNullExpression",
 	"TSParameterProperty",
 	"TSSatisfiesExpression",
@@ -27,9 +36,10 @@ const skippedKeys: ReadonlySet<string> = new Set(["comments", "end", "loc", "par
  * not descend into any other node of `boundaries`: nested function literals,
  * classes, or other units' code are reported by their own units only when the
  * caller lists them in `boundaries`. Type-only TypeScript syntax is skipped,
- * as are enum and namespace bodies; type assertions, non-null assertions,
- * `satisfies`, instantiation expressions, parameter properties and `export =`
- * are walked. Each optional link of a chain is a decision of its own.
+ * as are ambient namespaces and enums and `const` enums; type assertions,
+ * non-null assertions, `satisfies`, instantiation expressions, parameter
+ * properties, `export =`, the bodies of other namespaces and the member
+ * initializers of other enums are walked. Each optional link of a chain is a decision of its own.
  *
  * The result describes syntax only: a decision may be unreachable, and the
  * code around it may never run.
@@ -81,5 +91,13 @@ function childrenOf(node: ESTree.Node): ESTree.Node[] {
 }
 
 function isTypeOnly(node: ESTree.Node): boolean {
+	if (node.type === "TSModuleDeclaration") {
+		return node.declare;
+	}
+
+	if (node.type === "TSEnumDeclaration") {
+		return node.declare || node.const;
+	}
+
 	return node.type.startsWith("TS") && !runtimeTypeScriptNodes.has(node.type);
 }

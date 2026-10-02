@@ -63,15 +63,17 @@ function buildMemberUnit(draft: ModelDraft, member: MemberEntity, entity: ClassE
 			trigger: member.static ? "class-definition" : "instance-construction"
 		});
 		walkCode(draft, unit, node.value, "store", member.id);
-		if (member.key !== null) {
-			// Once evaluated, the value is defined on the receiver under the field's key.
-			unit.facts.push({
-				kind: "access",
-				mode: "write",
-				node,
-				target: memberTarget(draft, entity.id, member.key, member.static)
-			});
-		}
+		// Once evaluated, the value is defined on the receiver under the field's key.
+		unit.facts.push(
+			member.key === null
+				? { kind: "unknown", node, reason: "dynamic-member" }
+				: {
+						kind: "access",
+						mode: "write",
+						node,
+						target: memberTarget(draft, entity.id, member.key, member.static, "write")
+					}
+		);
 	} else if (node.type === "StaticBlock") {
 		const unit = addUnit(draft, {
 			...base,
@@ -116,7 +118,7 @@ function buildMemberUnit(draft: ModelDraft, member: MemberEntity, entity: ClassE
 function recordParameterProperties(draft: ModelDraft, unit: Unit, entity: ClassEntity): void {
 	for (const member of draft.membersByClass.get(entity.id) ?? []) {
 		if (member.kind === "parameter-property" && member.key !== null) {
-			const target = memberTarget(draft, entity.id, member.key, false);
+			const target = memberTarget(draft, entity.id, member.key, false, "write");
 			unit.facts.push({ kind: "access", mode: "write", node: member.node, target });
 		}
 	}

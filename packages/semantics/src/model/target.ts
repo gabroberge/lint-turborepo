@@ -1,8 +1,8 @@
-import type { DeclarationId } from "./ids";
+import type { DeclarationId, UnitId } from "./ids";
 import type { MemberKey } from "./member-key";
 
 /** What an access touches. */
-export type AccessTarget = BindingTarget | MemberTarget | PropertyTarget;
+export type AccessTarget = BindingTarget | MemberTarget | PropertyTarget | UnitTarget;
 
 /**
  * Where a binding is declared relative to the unit that touches it:
@@ -52,4 +52,14 @@ export interface PropertyTarget {
 	kind: "property";
 	/** The property name when static, else `null`. */
 	name: string | null;
+}
+
+/**
+ * A function literal's unit, reached directly through a binding local to the
+ * accessing unit that cannot hold anything else: a call of a never-reassigned
+ * local bound to the literal, or a named function expression calling itself.
+ */
+export interface UnitTarget {
+	kind: "unit";
+	unit: UnitId;
 }

@@ -1,8 +1,10 @@
 import { emitUnknown } from "./emit-unknown";
 import type { NodeHandlers, NodeOf } from "./node-handler";
+import { visitAssignedValue } from "./visit-assigned-value";
 import { visitBinding } from "./visit-binding";
 import { visitCall } from "./visit-call";
 import { visitChildren } from "./visit-children";
+import { visitDecorator } from "./visit-decorator";
 import { visitIdentifier } from "./visit-identifier";
 import { visitIteration } from "./visit-iteration";
 import { visitMember } from "./visit-member";
@@ -56,7 +58,7 @@ export const NODE_HANDLERS: NodeHandlers = {
 	},
 	AssignmentExpression(walker, node) {
 		visitTarget(walker, node.left, node.operator !== "=");
-		walker.visit(node.right, "run");
+		visitAssignedValue(walker, node.left, node.right);
 	},
 	AwaitExpression: visitSuspension,
 	CallExpression: visitCall,
@@ -75,6 +77,7 @@ export const NODE_HANDLERS: NodeHandlers = {
 		walker.visit(node.consequent, flow);
 		walker.visit(node.alternate, flow);
 	},
+	Decorator: visitDecorator,
 	ForInStatement: visitIteration,
 	ForOfStatement: visitIteration,
 	Identifier: visitIdentifier,
@@ -126,9 +129,18 @@ export const NODE_HANDLERS: NodeHandlers = {
 	},
 	ThisExpression: visitThis,
 	TSAsExpression: passThrough,
-	TSEnumDeclaration: unanalyzed,
+	TSEnumDeclaration(walker, node) {
+		// An ambient or `const` enum is erased: nothing of it runs.
+		if (!node.declare && !node.const) {
+			unanalyzed(walker, node);
+		}
+	},
 	TSInstantiationExpression: passThrough,
-	TSModuleDeclaration: unanalyzed,
+	TSModuleDeclaration(walker, node) {
+		if (!node.declare) {
+			unanalyzed(walker, node);
+		}
+	},
 	TSNonNullExpression: passThrough,
 	TSSatisfiesExpression: passThrough,
 	TSTypeAssertion: passThrough,

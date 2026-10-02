@@ -5,7 +5,8 @@ import type { DeclarationId, UnitId } from "./ids";
 
 /**
  * What `this` denotes in the unit: an instance of a module class, the class
- * itself (static code), nothing usable (module code), or a value that
+ * itself (static code), `undefined` (module code, class definition code and
+ * the arrows in them, which report nothing about it), or a value that
  * depends on how the unit is called.
  */
 export type Receiver =
@@ -32,7 +33,14 @@ export interface Unit {
 	 * a node in `ModuleModel.boundaries`.
 	 */
 	code: ESTree.Node[];
-	/** The declaration the unit belongs to, or `null` for module code and anonymous functions. */
+	/**
+	 * The declaration the unit belongs to, or `null` for module code and
+	 * functions that belong to none. A function literal belongs to the
+	 * declaration its value is stored in (`stored`: a field or module variable
+	 * initializer, or an assignment to a module class member or a module
+	 * binding) or whose initializer passes it to an assumed call
+	 * (`passed-to-assumed`: `total = computed(() => …)` belongs to `total`).
+	 */
 	declaration: DeclarationId | null;
 	facts: Fact[];
 	id: UnitId;

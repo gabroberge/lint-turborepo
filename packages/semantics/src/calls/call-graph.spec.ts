@@ -28,6 +28,7 @@ describe(callGraph, () => {
 			const { model } = analyzeSource(QUERY_NEST_SERVICE);
 
 			expect(callGraph(model).map((edge) => queryDescribeEdge(model, edge))).toStrictEqual([
+				"module -evaluates-> OrderService (definition)",
 				"OrderService.findTotal -calls-> OrderService.lookup",
 				"OrderService.findTotal -calls-> OrderService.sum",
 				"OrderService.findTotal -calls-> OrderService.remember",
@@ -47,6 +48,7 @@ describe(callGraph, () => {
 			const { model } = analyzeSource(QUERY_ANGULAR_COMPONENT);
 
 			expect(callGraph(model).map((edge) => queryDescribeEdge(model, edge))).toStrictEqual([
+				"module -evaluates-> CartComponent (definition)",
 				"CartComponent.total (initializer) -may-run-> CartComponent.total (initializer) > arrow (line 8)",
 				"CartComponent.total (initializer) > arrow (line 8) -may-run-> CartComponent.total (initializer) > arrow (line 8) > arrow (line 8)",
 				"CartComponent.label (initializer) -calls-> CartComponent.describe",

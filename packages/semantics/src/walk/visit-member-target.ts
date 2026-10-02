@@ -22,6 +22,11 @@ export function visitMemberTarget(walker: Walker, node: ESTree.MemberExpression,
 
 	const resolution = resolveObject(walker, object);
 	const key = accessKey(node);
+	if (resolution.kind === "no-receiver") {
+		// Module-level `this` is `undefined`: the assignment throws before touching anything.
+		return;
+	}
+
 	if (resolution.kind === "unknown-receiver") {
 		emitUnknown(walker, "unknown-receiver", node);
 		return;
@@ -33,12 +38,21 @@ export function visitMemberTarget(walker: Walker, node: ESTree.MemberExpression,
 			return;
 		}
 
-		const target = memberTarget(walker.draft, resolution.class, key, resolution.static);
 		if (compound) {
-			emitAccess(walker, "read", target, node);
+			emitAccess(
+				walker,
+				"read",
+				memberTarget(walker.draft, resolution.class, key, resolution.static, "read"),
+				node
+			);
 		}
 
-		emitAccess(walker, "write", target, node);
+		emitAccess(
+			walker,
+			"write",
+			memberTarget(walker.draft, resolution.class, key, resolution.static, "write"),
+			node
+		);
 		return;
 	}
 

@@ -164,6 +164,7 @@ describe(analyzeModule, () => {
 
 			expect(facts("Cart.count (initializer)")).toStrictEqual([
 				"call Cart.pick (undeclared)",
+				"unknown call: this.pick",
 				"read import signal",
 				"read import signal",
 				"write Cart.count"
@@ -221,7 +222,9 @@ describe(analyzeModule, () => {
 
 			expect(facts("CartComponent (definition)")).toStrictEqual([
 				"call import Component",
-				'unknown call: Component({ selector: "app-cart", template: "" })'
+				'unknown call: Component({ selector: "app-cart", template: "" })',
+				'unknown call: @Component({ selector: "app-cart", template: "" })',
+				'unknown receiver-escape: @Component({ selector: "app-cart", template: "" })'
 			]);
 		});
 

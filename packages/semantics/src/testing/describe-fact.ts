@@ -25,6 +25,10 @@ function describeTarget(model: ModuleModel, target: AccessTarget): string {
 		return `${target.scope} ${target.name}${target.mutable ? " (mutable)" : ""}`;
 	}
 
+	if (target.kind === "unit") {
+		return `unit ${model.units.get(target.unit)?.label ?? target.unit}`;
+	}
+
 	const owner = model.declarations.get(target.class)?.qualifiedName ?? target.class;
 	const key = target.key.private ? `#${target.key.name}` : target.key.name;
 	return `${target.static ? "static " : ""}${owner}.${key}${target.member === null ? " (undeclared)" : ""}`;

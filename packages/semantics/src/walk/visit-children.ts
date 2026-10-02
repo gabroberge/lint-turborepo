@@ -3,7 +3,11 @@ import type { ESTree } from "@oxlint/plugins";
 
 import type { Walker } from "./walker";
 
-/** Keys that never hold runtime code worth following. */
+/**
+ * Keys that never hold runtime code worth following. Decorators are code,
+ * but they only appear on module classes (walked as their definition code),
+ * nested classes (unanalyzed) and their members and parameters.
+ */
 const SKIPPED_KEYS = new Set([
 	"decorators",
 	"end",

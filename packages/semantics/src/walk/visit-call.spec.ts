@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { analyzeSource } from "../testing/analyze-source";
 import { analyzeTsxFacts } from "../testing/extraction-analyze-tsx";
+import { ANGULAR_ASSUMPTIONS } from "../testing/extraction-angular-assumptions";
 import { visitCall } from "./visit-call";
 
 const PRELUDE = `import { helper, ns } from "lib";
@@ -51,9 +52,29 @@ describe(visitCall, () => {
 
 	describe("local callees", () => {
 		it.each([
-			["const local = () => 1;\nlocal();", ["function bound-locally: Cart.run > arrow (line 12)"]],
-			["function local() {}\nlocal();", ["function bound-locally: Cart.run > function local (line 12)"]],
+			[
+				"const local = () => 1;\nlocal();",
+				["function bound-locally: Cart.run > arrow (line 12)", "call unit Cart.run > arrow (line 12)"]
+			],
+			[
+				"function local() {}\nlocal();",
+				[
+					"function bound-locally: Cart.run > function local (line 12)",
+					"call unit Cart.run > function local (line 12)"
+				]
+			],
+			[
+				"local();\nfunction local() {}",
+				[
+					"call unit Cart.run > function local (line 13)",
+					"function bound-locally: Cart.run > function local (line 13)"
+				]
+			],
 			["const local = param;\nlocal();", ["unknown call: local()"]],
+			[
+				"const { local } = () => 1;\nlocal();",
+				["function bound-locally: Cart.run > arrow (line 12)", "unknown call: local()"]
+			],
 			[
 				"let local = () => 1;\nlocal = param;\nlocal();",
 				["function bound-locally: Cart.run > arrow (line 12)", "unknown call: local()"]
@@ -64,21 +85,40 @@ describe(visitCall, () => {
 			expect(runFacts(body)).toStrictEqual(expected);
 		});
 
-		it("should know a named function expression's own name inside it", () => {
+		it("should call a named function expression's own unit through its own name", () => {
 			expect.assertions(1);
 
-			const { facts } = analyzeSource("const f = function self(n) { return n && self(n - 1); };");
+			const { facts } = analyzeSource("const f = function g(n) { return n ? g(n - 1) : 0; };");
 
-			expect(facts("module > function self (line 1)")).toStrictEqual([]);
+			expect(facts("module > function g (line 1)")).toStrictEqual(["call unit module > function g (line 1)"]);
+		});
+
+		it("should call the unit of a local arrow function", () => {
+			expect.assertions(1);
+
+			const { facts } = analyzeSource("export function f() { const g = () => 1; g(); }");
+
+			expect(facts("f")).toStrictEqual([
+				"function bound-locally: f > arrow (line 1)",
+				"call unit f > arrow (line 1)"
+			]);
+		});
+
+		it("should keep calling a local of an enclosing function a closure call", () => {
+			expect.assertions(1);
+
+			const { facts } = analyzeSource("export function f() {\n\tconst g = () => 1;\n\treturn () => g();\n}");
+
+			expect(facts("f > arrow (line 3)")).toStrictEqual(["call closure g", "unknown call: g()"]);
 		});
 	});
 
 	describe("member callees", () => {
 		it.each([
 			["this.load();", ["call Cart.load"]],
-			["this.count();", ["call Cart.count"]],
-			["this.missing?.();", ["call Cart.missing (undeclared)"]],
-			["Base.create();", ["call static Base.create (undeclared)"]],
+			["this.count();", ["call Cart.count", "unknown call: this.count"]],
+			["this.missing?.();", ["call Cart.missing (undeclared)", "unknown call: this.missing"]],
+			["Base.create();", ["call static Base.create (undeclared)", "unknown call: Base.create"]],
 			["ns.make();", ["read import ns", "call property make", "unknown call: ns.make"]],
 			[
 				"param.items.push(this.count);",
@@ -92,6 +132,87 @@ describe(visitCall, () => {
 			expect.assertions(1);
 
 			expect(runFacts(body).filter((line) => line !== "read property items")).toStrictEqual(expected);
+		});
+	});
+
+	describe("member callees the model cannot follow", () => {
+		/** The facts of `A.run`, whose body is `this.x();` (or `call`), next to `members`. */
+		function callFacts(members: string, call = "this.x();"): string[] {
+			return analyzeSource(
+				`import { signal } from "@angular/core";\nexport class A {\n${members}\n\trun() { ${call} }\n}`,
+				{ assumptions: ANGULAR_ASSUMPTIONS }
+			).facts("A.run");
+		}
+
+		it.each([
+			["x() {}", ["call A.x"]],
+			["x = () => 1;", ["call A.x"]],
+			["x = signal(0);", ["call A.x"]],
+			["accessor x = () => 1;", ["call A.x"]],
+			["get x() { return () => 1; }", ["call A.x", "unknown call: this.x"]],
+			["get x() { return () => 1; }\nset x(v) {}", ["call A.x", "unknown call: this.x"]],
+			["x(): void;", ["call A.x", "unknown call: this.x"]],
+			["x;", ["call A.x", "unknown call: this.x"]],
+			["x = make();", ["call A.x", "unknown call: this.x"]],
+			["constructor(private x: () => void) {}", ["call A.x", "unknown call: this.x"]],
+			[
+				"handler = () => {};\nset(fn) { this.handler = fn; }",
+				["call A.handler", "unknown call: this.handler"],
+				"this.handler();"
+			]
+		])("should record calling the member declared by %s as %j", (members, expected, call = "this.x();") => {
+			expect.assertions(1);
+
+			expect(callFacts(members, call)).toStrictEqual(expected);
+		});
+	});
+
+	describe("constructions", () => {
+		it("should construct a module class without uncertainty", () => {
+			expect.assertions(1);
+
+			const { facts } = analyzeSource("class A { x = 1; }\nexport function make() { return new A(); }");
+
+			expect(facts("make")).toStrictEqual(["construct module A"]);
+		});
+
+		it("should report the parent constructor of a derived module class as unknown", () => {
+			expect.assertions(1);
+
+			const { facts } = analyzeSource(
+				"class A extends Base { x = 1; }\nexport function make() { return new A(); }"
+			);
+
+			expect(facts("make")).toStrictEqual(["construct module A", "unknown construct: new A()"]);
+		});
+
+		it("should construct a const-bound class expression through its binding", () => {
+			expect.assertions(1);
+
+			const { facts } = analyzeSource("const A = class {};\nexport function make() { return new A(1); }");
+
+			expect(facts("make")).toStrictEqual(["construct module A"]);
+		});
+
+		it("should not resolve a reassigned class binding to the class", () => {
+			expect.assertions(2);
+
+			const { facts } = analyzeSource(
+				"let A = class { static n = 1; };\nA = Other;\nexport function make() { A.n; return new A(); }"
+			);
+
+			expect(facts("make")).toStrictEqual([
+				"read module A (mutable)",
+				"read property n",
+				"read module A (mutable)",
+				"unknown construct: new A()"
+			]);
+			expect(analyzeSource("class A {}\nA = Other;\nnew A();").facts("module")).toStrictEqual([
+				"write module A (mutable)",
+				"read global Other (mutable)",
+				"read module A (mutable)",
+				"unknown construct: new A()"
+			]);
 		});
 	});
 
@@ -109,7 +230,8 @@ describe(visitCall, () => {
 
 	describe("code outside the model", () => {
 		it.each([
-			["new Base();", ["read module Base", "unknown construct: new Base()"]],
+			["new Base();", ["construct module Base"]],
+			["new Cart();", ["construct module Cart", "unknown construct: new Cart()"]],
 			[
 				"new Map(this.count);",
 				["read global Map (mutable)", "unknown construct: new Map(this.count)", "read Cart.count"]
@@ -185,7 +307,12 @@ describe(visitCall, () => {
 				'import { Component } from "@angular/core";\n@Component({})\nclass Cart {}'
 			);
 
-			expect(facts("Cart (definition)")).toStrictEqual(["call import Component", "unknown call: Component({})"]);
+			expect(facts("Cart (definition)")).toStrictEqual([
+				"call import Component",
+				"unknown call: Component({})",
+				"unknown call: @Component({})",
+				"unknown receiver-escape: @Component({})"
+			]);
 		});
 
 		it("should resolve imported member and parameter decorators to their imports", () => {
@@ -198,9 +325,69 @@ describe(visitCall, () => {
 			expect(facts("Cart (definition)")).toStrictEqual([
 				"call import Input",
 				"unknown call: Input()",
+				"unknown call: @Input()",
 				"call import Inject",
 				"unknown call: Inject(TOKEN)",
-				"read import TOKEN"
+				"read import TOKEN",
+				"unknown call: @Inject(TOKEN)"
+			]);
+		});
+
+		it("should walk a method parameter decorator in the definition unit and apply it as an unknown call", () => {
+			expect.assertions(1);
+
+			const { facts } = analyzeSource(
+				'import { Dec } from "d";\nlet counter = 0;\nexport class A {\n\tm(@Dec(counter++) x: number) {}\n}'
+			);
+
+			expect(facts("A (definition)")).toStrictEqual([
+				"call import Dec",
+				"unknown call: Dec(counter++)",
+				"read module counter (mutable)",
+				"write module counter (mutable)",
+				"unknown call: @Dec(counter++)"
+			]);
+		});
+
+		it("should walk setter and accessor parameter decorators too", () => {
+			expect.assertions(1);
+
+			const { facts } = analyzeSource(
+				'import { Dec } from "d";\nclass A {\n\tset x(@Dec v) {}\n\tget y() { return 1; }\n\tstatic s(@Dec v) {}\n}'
+			);
+
+			expect(facts("A (definition)")).toStrictEqual([
+				"read import Dec",
+				"unknown call: @Dec",
+				"read import Dec",
+				"unknown call: @Dec"
+			]);
+		});
+
+		it("should hand a class to a plain class decorator", () => {
+			expect.assertions(1);
+
+			const { facts } = analyzeSource(
+				'import { register } from "r";\n@register\nexport class A { static n = 0; }'
+			);
+
+			expect(facts("A (definition)")).toStrictEqual([
+				"read import register",
+				"unknown call: @register",
+				"unknown receiver-escape: @register"
+			]);
+		});
+
+		it("should apply a decorator the assumptions describe without uncertainty", () => {
+			expect.assertions(1);
+
+			const { facts } = analyzeSource(
+				'import { inject } from "@angular/core";\n@inject({ a: () => 1 })\nclass A { @inject() x = 1; }',
+				{ assumptions: ANGULAR_ASSUMPTIONS }
+			);
+
+			expect(facts("A (definition)")).toStrictEqual([
+				"function passed-to-assumed: A (definition) > arrow (line 2)"
 			]);
 		});
 	});

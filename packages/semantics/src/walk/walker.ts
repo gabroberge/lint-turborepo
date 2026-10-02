@@ -14,4 +14,6 @@ export interface Walker {
 	storeOwner: DeclarationId | null;
 	unit: Unit;
 	visit: (node: ESTree.Node, flow: Flow) => void;
+	/** A walker over the same unit whose stored function literals belong to `owner`. */
+	withStoreOwner: (owner: DeclarationId | null) => Walker;
 }

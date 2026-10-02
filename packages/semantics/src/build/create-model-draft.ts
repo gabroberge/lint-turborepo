@@ -13,6 +13,8 @@ export function createModelDraft(sourceCode: SourceCode, assumptions: Assumption
 		declarations: new Map(),
 		membersByClass: new Map(),
 		sourceCode,
-		units: new Map()
+		unitByNode: new Map(),
+		units: new Map(),
+		unresolvedUnitTargets: []
 	};
 }

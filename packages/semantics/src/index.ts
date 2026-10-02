@@ -45,6 +45,13 @@ export type {
 export type { DeclarationId, UnitId } from "./model/ids";
 export type { MemberKey } from "./model/member-key";
 export type { ModuleModel } from "./model/module-model";
-export type { AccessTarget, BindingScope, BindingTarget, MemberTarget, PropertyTarget } from "./model/target";
+export type {
+	AccessTarget,
+	BindingScope,
+	BindingTarget,
+	MemberTarget,
+	PropertyTarget,
+	UnitTarget
+} from "./model/target";
 export type { Receiver, Trigger, Unit, UnitKind } from "./model/unit";
 export type { Visibility } from "./model/visibility";

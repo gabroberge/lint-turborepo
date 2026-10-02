@@ -42,7 +42,8 @@ export function describeDeclaration(declaration: Declaration): string {
 	const flags = [
 		declaration.static ? "static" : "",
 		declaration.signature ? "signature" : "",
-		declaration.value === "none" ? "" : `= ${declaration.value}`
+		declaration.value === "none" ? "" : `= ${declaration.value}`,
+		declaration.reassigned ? "(reassigned)" : ""
 	].filter((flag) => flag !== "");
 	return [
 		declaration.kind,

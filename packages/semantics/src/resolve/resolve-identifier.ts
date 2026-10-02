@@ -14,11 +14,29 @@ const IMMUTABLE_GLOBALS = new Set(["Infinity", "NaN", "undefined"]);
  * Module-level and imported bindings resolve to their declaration; a binding
  * declared inside the unit's own code is local; one declared in an
  * enclosing function is a closure binding; anything unresolved is global.
+ * A function's implicit `arguments` is local to that function. A module
+ * class binding that is assigned again is a plain binding, not the class.
  */
 export function resolveIdentifier(walker: Walker, identifier: IdentifierNode): Resolution {
 	const { draft, unit } = walker;
 	const variable = resolveVariable(draft.sourceCode, identifier);
 	const definition = variable?.defs[0];
+	if (variable !== null && definition === undefined && variable.scope.type === "function") {
+		// The implicit `arguments` of a function: local to it, captured by the arrows inside it.
+		return isInside(variable.scope.block, unit.code)
+			? { initializer: null, kind: "local" }
+			: {
+					kind: "binding",
+					target: {
+						declaration: null,
+						kind: "binding",
+						mutable: isReassigned(variable),
+						name: identifier.name,
+						scope: "closure"
+					}
+				};
+	}
+
 	if (variable === null || definition === undefined) {
 		const mutable = !IMMUTABLE_GLOBALS.has(identifier.name);
 		return {
@@ -27,15 +45,18 @@ export function resolveIdentifier(walker: Walker, identifier: IdentifierNode): R
 		};
 	}
 
-	const classId =
+	const reassigned = isReassigned(variable);
+	const namedClass =
 		draft.classByVariable.get(variable) ??
 		(definition.type === "ClassName" ? draft.classByNode.get(definition.node) : undefined);
-	const declaration = draft.declarationByVariable.get(variable) ?? classId ?? null;
+	// A class binding assigned again may hold anything.
+	const classId = reassigned ? undefined : namedClass;
+	const declaration = draft.declarationByVariable.get(variable) ?? namedClass ?? null;
 	const name = identifier.name;
 	if (variable.scope.type === "module" || variable.scope.type === "global") {
 		const imported = definition.type === "ImportBinding";
 		const constant = definition.parent?.type === "VariableDeclaration" && definition.parent.kind === "const";
-		const mutable = !imported && !constant && isReassigned(variable);
+		const mutable = !imported && !constant && reassigned;
 		const target = { declaration, kind: "binding", mutable, name, scope: imported ? "import" : "module" } as const;
 		return classId === undefined ? { kind: "binding", target } : { class: classId, kind: "class", target };
 	}
@@ -49,9 +70,9 @@ export function resolveIdentifier(walker: Walker, identifier: IdentifierNode): R
 	if (isInside(definition.name, unit.code)) {
 		// A local assigned again may hold anything, whatever it was initialized with.
 		const node = definition.node;
-		const initializer = isReassigned(variable)
+		const initializer = reassigned
 			? null
-			: node.type === "VariableDeclarator"
+			: node.type === "VariableDeclarator" && node.id === definition.name
 				? node.init
 				: definition.type === "FunctionName"
 					? node
@@ -59,6 +80,6 @@ export function resolveIdentifier(walker: Walker, identifier: IdentifierNode): R
 		return { initializer, kind: "local" };
 	}
 
-	const mutable = definition.type === "Parameter" || isReassigned(variable);
+	const mutable = definition.type === "Parameter" || reassigned;
 	return { kind: "binding", target: { declaration: null, kind: "binding", mutable, name, scope: "closure" } };
 }

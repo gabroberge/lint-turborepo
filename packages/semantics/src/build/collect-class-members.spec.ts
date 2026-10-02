@@ -141,4 +141,58 @@ describe(collectClassMembers, () => {
 			expect(owners).toStrictEqual(["d0", "A.a in d0", "d2", "B.constructor in d2", "B.b in d2"]);
 		});
 	});
+
+	describe("reassigned members", () => {
+		it.each([
+			["h = () => 1;\nm() { this.h = null; }", 'field Shop.h ["h"] public = function (reassigned)'],
+			["h = () => 1;\nm() { this.h ||= null; }", 'field Shop.h ["h"] public = function (reassigned)'],
+			["h = 0;\nm() { this.h++; }", 'field Shop.h ["h"] public = other (reassigned)'],
+			["h = () => 1;\nm(p) { [this.h] = p; }", 'field Shop.h ["h"] public = function (reassigned)'],
+			["h = () => 1;\nm(p) { ({ a: this.h } = p); }", 'field Shop.h ["h"] public = function (reassigned)'],
+			["h = () => 1;\nm(p) { for (this.h of p) {} }", 'field Shop.h ["h"] public = function (reassigned)'],
+			["#h = () => 1;\nm() { this.#h = null; }", "field Shop.#h [#h] private = function (reassigned)"],
+			[
+				"static h = () => 1;\nstatic m() { Shop.h = null; }",
+				'field Shop.h ["h"] public static = function (reassigned)'
+			],
+			[
+				"static h = () => 1;\nstatic { this.h = null; }",
+				'field Shop.h ["h"] public static = function (reassigned)'
+			],
+			[
+				"accessor h = () => 1;\nm() { this.h = null; }",
+				'accessor-field Shop.h ["h"] public = function (reassigned)'
+			],
+			[
+				"h() {}\nconstructor() { super(); this.h = this.h.bind(this); }",
+				'method Shop.h ["h"] public (reassigned)'
+			]
+		])("should mark the first member of %s as %s", (body, expected) => {
+			expect.assertions(1);
+
+			expect(members(body)[0]).toBe(expected);
+		});
+
+		it.each([
+			["h = () => 1;\nm() { this.h(); }", 'field Shop.h ["h"] public = function'],
+			["static h = () => 1;\nm() { this.h = null; }", 'field Shop.h ["h"] public static = function'],
+			["h = () => 1;\nstatic m() { this.h = null; }", 'field Shop.h ["h"] public = function'],
+			["get h() { return 1; }\nm() { this.h = 1; }", 'getter Shop.h ["h"] public'],
+			["h = () => 1;\nm(other) { other.h = null; }", 'field Shop.h ["h"] public = function']
+		])("should not mark the first member of %s as reassigned", (body, expected) => {
+			expect.assertions(1);
+
+			expect(members(body)[0]).toBe(expected);
+		});
+
+		it("should mark a static member assigned through the class name from module code", () => {
+			expect.assertions(1);
+
+			const { model } = analyzeSource("class Shop { static h = () => 1; }\nShop.h = null;");
+
+			expect([...model.declarations.values()].map((declaration) => describeDeclaration(declaration))).toContain(
+				'field Shop.h ["h"] public static = function (reassigned)'
+			);
+		});
+	});
 });

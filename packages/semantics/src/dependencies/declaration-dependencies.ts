@@ -6,8 +6,11 @@ import { ownerOf } from "./owner-of";
  * Every direct dependency between the module's declarations, unit by unit,
  * in the order of each unit's facts. Accesses that resolve to no declaration
  * (globals, closure bindings, properties of other objects, undeclared
- * members) are not dependencies; they remain facts of the unit. A field
- * initializer defining its own field is not reported.
+ * members) are not dependencies; they remain facts of the unit. Neither is a
+ * call of a function literal's unit (a `unit` target): the literal is a
+ * local of the calling code, so it belongs to the same declaration. A
+ * field initializer defining its own field is not reported; `new A()` of a
+ * module class is a `construct` dependency on the class.
  */
 export function declarationDependencies(model: ModuleModel): DeclarationDependency[] {
 	const dependencies: DeclarationDependency[] = [];

@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import type { AnalyzeOptions } from "../index";
 import { analyzeSource } from "../testing/analyze-source";
 import { queryDescribeReached } from "../testing/query-describe-reached";
+import { QUERY_ANGULAR_ASSUMPTIONS } from "../testing/query-fixtures";
 import { reachedFacts } from "./reached-facts";
 
-function reachedFrom(code: string, label: string): string[] {
-	const { model, unit } = analyzeSource(code);
+function reachedFrom(code: string, label: string, options: AnalyzeOptions = {}): string[] {
+	const { model, unit } = analyzeSource(code, options);
 	return reachedFacts(model, unit(label).id).map((reached) => queryDescribeReached(model, code, reached));
 }
 
@@ -122,6 +124,88 @@ describe(reachedFacts, () => {
 
 		expect(reachedFrom(code, "start").filter((line) => line.startsWith("read"))).toStrictEqual([
 			"read module counter (mutable) (start -calls-> leaf)"
+		]);
+	});
+
+	it("should reach the callback of an assumed callable the unit calls", () => {
+		expect.assertions(1);
+
+		const code = [
+			'import { computed, signal } from "@angular/core";',
+			"class A {",
+			"\tcount = signal(0);",
+			"\ttotal = computed(() => this.count() + 1);",
+			"\ty = this.total();",
+			"}"
+		].join("\n");
+
+		expect(reachedFrom(code, "A.y (initializer)", { assumptions: QUERY_ANGULAR_ASSUMPTIONS })).toStrictEqual([
+			"call A.total",
+			"write A.y",
+			"call A.count (A.y (initializer) -may-run-> A.total (initializer) > arrow (line 4))"
+		]);
+	});
+
+	it("should reach class-definition code from module evaluation", () => {
+		expect.assertions(1);
+
+		const code = [
+			"let created = 0;",
+			"class Cart {",
+			"\tstatic first = (created = 1);",
+			"\tstatic {",
+			"\t\tcreated += 1;",
+			"\t}",
+			"\titems = (created = 3);",
+			"}"
+		].join("\n");
+
+		expect(reachedFrom(code, "module").filter((line) => line.includes(" -"))).toStrictEqual([
+			"write module created (mutable) (module -evaluates-> Cart.first (initializer))",
+			"write static Cart.first (module -evaluates-> Cart.first (initializer))",
+			"read module created (mutable) (module -evaluates-> Cart.static block)",
+			"write module created (mutable) (module -evaluates-> Cart.static block)"
+		]);
+	});
+
+	it("should reach the construction code of a module class built with new", () => {
+		expect.assertions(1);
+
+		const code = [
+			"let created = 0;",
+			"class Cart {",
+			"\titems = (created = 3);",
+			"\tconstructor(private readonly id: number) {",
+			"\t\tcreated += 1;",
+			"\t}",
+			"}",
+			"function make() { return new Cart(1); }"
+		].join("\n");
+
+		expect(reachedFrom(code, "make")).toStrictEqual([
+			"construct module Cart",
+			"write module created (mutable) (make -calls-> Cart.items (initializer))",
+			"write Cart.items (make -calls-> Cart.items (initializer))",
+			"write Cart.id (make -calls-> Cart.constructor)",
+			"read module created (mutable) (make -calls-> Cart.constructor)",
+			"write module created (mutable) (make -calls-> Cart.constructor)"
+		]);
+	});
+
+	it("should reach a local function literal the unit binds and calls", () => {
+		expect.assertions(1);
+
+		const code = [
+			"let hits = 0;",
+			"function run() {",
+			"\tconst bump = () => { hits += 1; };",
+			"\tbump();",
+			"}"
+		].join("\n");
+
+		expect(reachedFrom(code, "run").filter((line) => line.includes(" -"))).toStrictEqual([
+			"read module hits (mutable) (run -may-run-> run > arrow (line 3))",
+			"write module hits (mutable) (run -may-run-> run > arrow (line 3))"
 		]);
 	});
 

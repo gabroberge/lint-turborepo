@@ -30,6 +30,10 @@ export function buildModuleUnit(draft: ModelDraft, program: ESTree.Program): Uni
 		buildStatement(draft, unit, statement);
 	}
 
+	for (const { node, target } of draft.unresolvedUnitTargets) {
+		target.unit = draft.unitByNode.get(node) ?? target.unit;
+	}
+
 	return unit;
 }
 
@@ -76,17 +80,15 @@ function buildFunctionDeclaration(draft: ModelDraft, unit: Unit, node: ESTree.Fu
 		trigger: "invocation"
 	});
 	draft.boundaries.add(node);
+	draft.unitByNode.set(node, functionUnit.id);
 	unit.facts.push({ disposition: "stored", kind: "function", node, unit: functionUnit.id });
 	walkFunctionUnit(draft, functionUnit, node);
 }
 
 function buildStatement(draft: ModelDraft, unit: Unit, node: ESTree.Node): void {
 	if (node.type === "TSEnumDeclaration" || node.type === "TSModuleDeclaration") {
-		// Unless ambient, their bodies run when the module is evaluated; the model does not analyze them.
-		if (!node.declare) {
-			walkCode(draft, unit, node, "run");
-		}
-
+		// Unless ambient (or a `const` enum), their bodies run when the module is evaluated; the model does not analyze them.
+		walkCode(draft, unit, node, "run");
 		return;
 	}
 

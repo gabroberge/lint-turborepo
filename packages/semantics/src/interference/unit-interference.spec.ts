@@ -392,6 +392,117 @@ const CASES: InterferenceCase[] = [
 		first: "A.a (initializer)",
 		name: "two calls of one field",
 		second: "A.b (initializer)"
+	},
+	{
+		code: [
+			ANGULAR_IMPORT,
+			"class A {",
+			"\tcount = signal(0);",
+			"\ttotal = computed(() => this.count() + 1);",
+			"\ty = this.total();",
+			"}"
+		],
+		expected: "definite",
+		first: "A.count (initializer)",
+		name: "an eager call of a computed field and the signal its callback calls",
+		options: ANGULAR,
+		second: "A.y (initializer)"
+	},
+	{
+		code: [
+			'import { emit, subscribe } from "bus";',
+			"let count = 0;",
+			"subscribe(() => console.log(count));",
+			"export class A {",
+			"\ta = emit();",
+			"\tb = (count = 5);",
+			"}"
+		],
+		expected: "possible",
+		first: "A.a (initializer)",
+		name: "an unknown call and a write of a module let a subscribed callback reads",
+		second: "A.b (initializer)"
+	},
+	{
+		code: [
+			'import { emit, subscribe } from "bus";',
+			"let count = 0;",
+			"subscribe(() => console.log(count + 1));",
+			"export class A {",
+			"\ta = emit();",
+			"\tb = (A.total = 5);",
+			"\tstatic total = 0;",
+			"}"
+		],
+		expected: "none",
+		first: "A.a (initializer)",
+		name: "an unknown call and a write no handed-on callback reads",
+		second: "A.b (initializer)"
+	},
+	{
+		code: [
+			'import { emit, subscribe } from "bus";',
+			"subscribe(() => A.report());",
+			"export class A {",
+			"\tstatic total = 0;",
+			"\tstatic report(): number { return A.total; }",
+			"\ta = emit();",
+			"\tb = (A.total = 5);",
+			"}"
+		],
+		expected: "possible",
+		first: "A.a (initializer)",
+		name: "an unknown call and a write of a static member a subscribed callback reads through a method",
+		second: "A.b (initializer)"
+	},
+	{
+		code: [
+			'import { emit } from "bus";',
+			"let count = 0;",
+			"function report(): number { return count; }",
+			"emit(report);",
+			"export class A {",
+			"\ta = emit();",
+			"\tb = (count = 5);",
+			"}"
+		],
+		expected: "possible",
+		first: "A.a (initializer)",
+		name: "an unknown call and a write of a module let a function handed on as a value reads",
+		second: "A.b (initializer)"
+	},
+	{
+		code: [
+			'import { emit, subscribe } from "bus";',
+			"export class A {",
+			"\tx = 0;",
+			"\tsubscription = subscribe(() => console.log(this.x));",
+			"\ta = emit();",
+			"\tb = (this.x = 5);",
+			"}"
+		],
+		expected: "possible",
+		first: "A.a (initializer)",
+		name: "an unknown call and a write of an instance field a subscribed arrow reads through this",
+		second: "A.b (initializer)"
+	},
+	{
+		code: [
+			"let created = 0;",
+			"class B {",
+			"\tconstructor() {",
+			"\t\tcreated += 1;",
+			"\t}",
+			"}",
+			"class A {",
+			"\ta = new B();",
+			"\tb = created;",
+			"}"
+		],
+		expected: "definite",
+		first: "A.a (initializer)",
+		name: "a construction whose constructor writes a module let and a read of it",
+		second: "A.b (initializer)"
 	}
 ];
 
@@ -582,6 +693,38 @@ describe(unitInterference, () => {
 			expect(queryInterference(code, "A.a (initializer)", "A.b (initializer)").evidence).toStrictEqual([
 				"outside-effects: read global someGlobal (mutable) / unknown call: log()"
 			]);
+		});
+	});
+
+	describe("when one side touches nothing", () => {
+		it("should not let an opaque fact relate it to the other side", () => {
+			expect.assertions(2);
+
+			const code = [
+				"class A {",
+				"\tz = 1;",
+				'\tb = eval("this.z");',
+				"}",
+				"function pure(n: number): number { return n + 1; }"
+			].join("\n");
+
+			expect(queryInterference(code, "A.b (initializer)", "pure")).toStrictEqual({
+				evidence: [],
+				kind: "none",
+				reversedKind: "none"
+			});
+			expect(queryInterference(code, "A.b (initializer)", "A.z (initializer)").kind).toBe("possible");
+		});
+
+		it("should still pair two opaque units", () => {
+			expect.assertions(1);
+
+			const code = [
+				'function a(): unknown { return eval("1"); }',
+				'function b(): unknown { return eval("2"); }'
+			].join("\n");
+
+			expect(queryInterference(code, "a", "b").kind).toBe("possible");
 		});
 	});
 

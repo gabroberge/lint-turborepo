@@ -92,6 +92,14 @@ describe(recursiveUnitGroups, () => {
 		expect(groupsOf(code)).toStrictEqual([["A.handler (initializer) > arrow (line 2)", "A.start"]]);
 	});
 
+	it("should find a class whose field initializer constructs the class again", () => {
+		expect.assertions(1);
+
+		const code = ["class Tree {", "\tchild = Math.random() > 0.5 ? new Tree() : null;", "}"].join("\n");
+
+		expect(groupsOf(code)).toStrictEqual([["Tree.child (initializer)"]]);
+	});
+
 	it("should return nothing for an acyclic module", () => {
 		expect.assertions(1);
 

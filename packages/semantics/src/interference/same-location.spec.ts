@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { AccessTarget } from "../index";
+import { locationKey } from "./location-key";
 import { sameLocation } from "./same-location";
 
 interface MemberOptions {
@@ -62,7 +63,13 @@ describe(sameLocation, () => {
 			right: { kind: "property", name: "a" },
 			same: false
 		},
-		{ left: member("a"), name: "a member and a global", right: binding("a", "global"), same: false }
+		{ left: member("a"), name: "a member and a global", right: binding("a", "global"), same: false },
+		{
+			left: { kind: "unit", unit: "u1" },
+			name: "one function literal's unit",
+			right: { kind: "unit", unit: "u1" },
+			same: false
+		}
 	] satisfies { left: AccessTarget; name: string; right: AccessTarget; same: boolean }[])(
 		"should decide $same for $name",
 		({ left, right, same }) => {
@@ -72,4 +79,37 @@ describe(sameLocation, () => {
 			expect(sameLocation(right, left)).toBe(same);
 		}
 	);
+});
+
+describe(locationKey, () => {
+	it.each([
+		{ left: member("x"), right: member("x") },
+		{ left: member("x"), right: member("x", { private: true }) },
+		{ left: member("x"), right: member("x", { static: true }) },
+		{ left: member("x"), right: member("x", { class: "c2" }) },
+		{ left: binding("a", "module", "d1"), right: binding("a", "module", "d1") },
+		{ left: binding("a", "module", "d1"), right: binding("a", "global") },
+		{ left: binding("a", "global"), right: binding("a", "global") },
+		{ left: binding("a", "closure"), right: binding("a", "closure") },
+		{ left: binding("a", "global"), right: member("a") }
+	] satisfies { left: AccessTarget; right: AccessTarget }[])(
+		"should give equal keys exactly to the same location ($left.kind $left.name, $right.kind $right.name)",
+		({ left, right }) => {
+			expect.assertions(1);
+
+			const leftKey = locationKey(left);
+
+			expect(leftKey !== null && leftKey === locationKey(right)).toBe(sameLocation(left, right));
+		}
+	);
+
+	it("should give no key to closure bindings, properties and units", () => {
+		expect.assertions(1);
+
+		expect([
+			locationKey(binding("a", "closure")),
+			locationKey({ kind: "property", name: "a" }),
+			locationKey({ kind: "unit", unit: "u1" })
+		]).toStrictEqual([null, null, null]);
+	});
 });

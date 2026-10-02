@@ -56,6 +56,27 @@ describe(walkCode, () => {
 			expect(model.declarations.get(quoted ?? "")).toMatchObject({ key: { name: "#x", private: false } });
 		});
 
+		it.each([
+			["this.x = 1;", ["write setter"]],
+			["this.x;", ["read getter"]],
+			["this.x();", ["call getter"]],
+			["this.x += 1;", ["read getter", "write setter"]]
+		])("should resolve %s on a getter and setter pair to %j", (body, expected) => {
+			expect.assertions(1);
+
+			const { model, unit } = analyzeSource(
+				`export class A {\n\tget x() { return 1; }\n\tset x(v) {}\n\tm() { ${body} }\n}`
+			);
+
+			expect(
+				unit("A.m").facts.flatMap((fact) =>
+					fact.kind === "access" && fact.target.kind === "member"
+						? [`${fact.mode} ${model.declarations.get(fact.target.member ?? "")?.kind ?? "none"}`]
+						: []
+				)
+			).toStrictEqual(expected);
+		});
+
 		it("should resolve a member to its implementation rather than an overload signature", () => {
 			expect.assertions(1);
 
@@ -149,12 +170,21 @@ describe(walkCode, () => {
 			expect(facts("Cart.n (initializer)")).toStrictEqual(["write static Cart.n"]);
 		});
 
-		it("should not write a field with a computed key", () => {
+		it("should define a field with a non-literal computed key as a dynamic member, not a write", () => {
 			expect.assertions(1);
 
 			expect(
 				analyzeSource("class Cart { [KEY] = this.total; }").facts("Cart.[computed] (initializer)")
-			).toStrictEqual(["read Cart.total (undeclared)"]);
+			).toStrictEqual(["read Cart.total (undeclared)", "unknown dynamic-member: [KEY] = this.total;"]);
+		});
+
+		it("should report the field a non-literal computed key defines as a dynamic member of its initializer", () => {
+			expect.assertions(2);
+
+			const { facts } = analyzeSource('const k = "fo" + "o";\nexport class A {\n\t[k] = 1;\n\ta = this.foo;\n}');
+
+			expect(facts("A.[computed] (initializer)")).toStrictEqual(["unknown dynamic-member: [k] = 1;"]);
+			expect(facts("A.a (initializer)")).toStrictEqual(["read A.foo (undeclared)", "write A.a"]);
 		});
 
 		it("should write an accessor field from its initializer", () => {
@@ -197,7 +227,9 @@ describe(walkCode, () => {
 			["param;", []],
 			["const local = 1; let other = local; other = 2; other;", []],
 			["for (const item of param) { item; }", []],
-			["try {} catch (error) { error; }", []]
+			["try {} catch (error) { error; }", []],
+			["arguments;", []],
+			["arguments[0] = 1;", ["write property 0"]]
 		])("should record %s as %j", (body, expected) => {
 			expect.assertions(1);
 
@@ -217,6 +249,14 @@ describe(walkCode, () => {
 				"read closure changed (mutable)",
 				"read closure kept"
 			]);
+		});
+
+		it("should treat a function's implicit arguments as a closure binding in the arrows inside it", () => {
+			expect.assertions(1);
+
+			const { facts } = analyzeSource("function outer() {\n\treturn () => arguments;\n}");
+
+			expect(facts("outer > arrow (line 2)")).toStrictEqual(["read closure arguments"]);
 		});
 
 		it("should record an assignment's target before its value, unlike evaluation order", () => {

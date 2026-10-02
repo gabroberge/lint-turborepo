@@ -37,6 +37,9 @@ export function createWalker(draft: ModelDraft, unit: Unit, storeOwner: Declarat
 			} else if (!node.type.startsWith("TS")) {
 				visitChildren(walker, node);
 			}
+		},
+		withStoreOwner(owner) {
+			return createWalker(draft, unit, owner);
 		}
 	};
 

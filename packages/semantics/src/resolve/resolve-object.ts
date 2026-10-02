@@ -7,7 +7,7 @@ import { resolveIdentifier } from "./resolve-identifier";
 
 /**
  * Resolve the object of a member access: `this` through the unit's
- * receiver, a module class's name to its static side, anything else as a
+ * receiver (module-level `this` is `undefined`), a module class's name to its static side, anything else as a
  * foreign object.
  */
 export function resolveObject(walker: Walker, object: ESTree.Node): ObjectResolution {
@@ -18,7 +18,7 @@ export function resolveObject(walker: Walker, object: ESTree.Node): ObjectResolu
 			return { class: receiver.class, kind: "class-member", static: receiver.kind === "class" };
 		}
 
-		return { kind: "unknown-receiver" };
+		return receiver.kind === "none" ? { kind: "no-receiver" } : { kind: "unknown-receiver" };
 	}
 
 	if (node.type === "Identifier") {

@@ -95,6 +95,20 @@ describe(declarationDependencies, () => {
 		).toStrictEqual([]);
 	});
 
+	it("should make new of a module class a construct dependency and leave local function calls out", () => {
+		expect.assertions(1);
+
+		const code = [
+			"class Cart {}",
+			"function make() {",
+			"\tconst build = () => new Cart();",
+			"\treturn build();",
+			"}"
+		].join("\n");
+
+		expect(dependenciesOf(code)).toStrictEqual(["make -construct-> Cart [make > arrow (line 3)]"]);
+	});
+
 	it("should carry the fact and the unit of each dependency", () => {
 		expect.assertions(2);
 

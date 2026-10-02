@@ -6,14 +6,16 @@ import { isReassigned } from "../resolve/is-reassigned";
 import { addDeclaration } from "./add-declaration";
 import { declareClass } from "./declare-class";
 import { markExported } from "./mark-exported";
+import { markReassignedMembers } from "./mark-reassigned-members";
 import type { ModelDraft } from "./model-draft";
 import { valueOf } from "./value-of";
 
 /**
  * Declare everything the module declares at top level: imports, functions,
  * variables and classes (with their members). Local `export { … }` lists
- * mark the named declarations as exported. Re-exports from other modules,
- * enums and namespaces are not modelled.
+ * mark the named declarations as exported, and class members assigned
+ * outside their declaration are marked `reassigned`. Re-exports from other
+ * modules, enums and namespaces are not modelled.
  */
 export function collectModuleDeclarations(draft: ModelDraft, program: ESTree.Program): void {
 	for (const statement of program.body) {
@@ -21,6 +23,7 @@ export function collectModuleDeclarations(draft: ModelDraft, program: ESTree.Pro
 	}
 
 	markExported(draft, program);
+	markReassignedMembers(draft, program);
 }
 
 function declareFunction(draft: ModelDraft, node: ESTree.Function, exported: boolean): void {

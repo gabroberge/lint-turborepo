@@ -17,13 +17,20 @@ const OPAQUE_REASONS: ReadonlySet<string> = new Set([
  * - `opaque`: the code may touch anything (see `InterferenceReason`), including
  *   any access to a member a module class with a superclass does not declare:
  *   an inherited accessor or method runs unseen code on the same receiver;
- * - `effect`: it runs outside code (an unknown call, `new`, a suspension…),
- *   calls a value the model cannot follow (a field holding any value, a
- *   parameter property, a getter's result, an abstract or undeclared member), or writes a closure binding
- *   or a property of another object;
+ * - `effect`: it runs outside code (an `unknown` `call`, `construct`,
+ *   suspension…; a call of a member the model cannot follow, such as a field
+ *   holding any value, a getter's result or an abstract member, comes with
+ *   such an `unknown` `call` fact), or writes a closure binding or a
+ *   property of another object;
  * - `external`: it reads state outside code could change: a mutable
- *   binding, a property of another object, or calls an assumed callable;
- * - `null`: none of these.
+ *   binding, a property of another object, or the state of an assumed
+ *   callable it calls (the factory's value, whose `may-run` call edges also
+ *   reach the functions it was built from);
+ * - `null`: none of these, including calls of a function literal's unit and
+ *   constructions of a module class, whose code is reached through call edges.
+ *
+ * Whether two units' roles make their order matter is decided by
+ * `unitInterference`; the classification is a heuristic for that purpose.
  */
 export function outsideRole(model: ModuleModel, fact: Fact): "effect" | "external" | "opaque" | null {
 	if (fact.kind === "unknown") {
@@ -35,6 +42,10 @@ export function outsideRole(model: ModuleModel, fact: Fact): "effect" | "externa
 	}
 
 	const { mode, target } = fact;
+	if (target.kind === "unit") {
+		return null;
+	}
+
 	if (target.kind === "property") {
 		return mode === "read" ? "external" : "effect";
 	}
@@ -44,6 +55,10 @@ export function outsideRole(model: ModuleModel, fact: Fact): "effect" | "externa
 			return target.scope === "closure" ? "effect" : null;
 		}
 
+		if (mode === "call" && callsAssumedCallable(model, target.declaration)) {
+			return "external";
+		}
+
 		return target.mutable && mode === "read" ? "external" : null;
 	}
 
@@ -51,22 +66,12 @@ export function outsideRole(model: ModuleModel, fact: Fact): "effect" | "externa
 		return "opaque";
 	}
 
-	if (mode !== "call") {
-		return null;
-	}
+	return mode === "call" && callsAssumedCallable(model, target.member) ? "external" : null;
+}
 
-	const member = target.member === null ? undefined : model.declarations.get(target.member);
-	if (member === undefined) {
-		return "effect";
-	}
-
-	if (member.kind === "field" || member.kind === "accessor-field" || member.kind === "parameter-property") {
-		return member.value === "function" ? null : member.value === "assumed-callable" ? "external" : "effect";
-	}
-
-	// A method's own body is followed; an abstract or overload-only method, or
-	// the value a getter returns, is code the model cannot see.
-	return member.kind === "method" && !member.signature ? null : "effect";
+function callsAssumedCallable(model: ModuleModel, declarationId: DeclarationId | null): boolean {
+	const declaration = declarationId === null ? undefined : model.declarations.get(declarationId);
+	return declaration !== undefined && "value" in declaration && declaration.value === "assumed-callable";
 }
 
 function hasSuperclass(model: ModuleModel, classId: DeclarationId): boolean {

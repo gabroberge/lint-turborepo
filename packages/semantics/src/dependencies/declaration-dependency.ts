@@ -8,7 +8,8 @@ import type { DeclarationId, UnitId } from "../model/ids";
  *   function literal belongs to the declaration of its nearest enclosing
  *   unit that has one), or `null` for module code;
  * - `to` is the declaration an access resolves to;
- * - `mode` is the access mode.
+ * - `mode` is the access mode: `read`, `write`, `call`, or `construct` for
+ *   `new` of a module class (`to` is the class).
  *
  * A dependency is direct and syntactic: it says the code refers to the
  * declaration in that way, not that the code runs. Transitive relations come

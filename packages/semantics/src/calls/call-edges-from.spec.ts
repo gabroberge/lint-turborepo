@@ -162,8 +162,8 @@ describe(callEdgesFrom, () => {
 		]);
 	});
 
-	it("should give an arrow assigned to a member a may-run edge, not defines", () => {
-		expect.assertions(1);
+	it("should store an arrow assigned to a member and call it through the member", () => {
+		expect.assertions(2);
 
 		const code = [
 			"class Cart {",
@@ -171,19 +171,98 @@ describe(callEdgesFrom, () => {
 			"\t\tthis.handler = () => 1;",
 			"\t}",
 			"\thandler?: () => number;",
+			"\trun() { return this.handler?.(); }",
 			"}"
 		].join("\n");
 
-		// Pinned: the value of an assignment expression flows as `run`, even as a statement.
-		expect(edgesOf(code, "Cart.load")).toStrictEqual(["Cart.load -may-run-> Cart.load > arrow (line 3)"]);
+		expect(edgesOf(code, "Cart.load")).toStrictEqual(["Cart.load -defines-> Cart.load > arrow (line 3)"]);
+		expect(edgesOf(code, "Cart.run")).toStrictEqual(["Cart.run -calls-> Cart.load > arrow (line 3)"]);
 	});
 
-	it("should give an arrow bound to a local const a may-run edge", () => {
+	it("should bind an arrow to a local const and call its unit", () => {
 		expect.assertions(1);
 
 		const code = ["class Cart {", "\tload() {", "\t\tconst f = () => 1;", "\t\treturn f();", "\t}", "}"].join("\n");
 
-		expect(edgesOf(code, "Cart.load")).toStrictEqual(["Cart.load -may-run-> Cart.load > arrow (line 3)"]);
+		expect(edgesOf(code, "Cart.load")).toStrictEqual([
+			"Cart.load -may-run-> Cart.load > arrow (line 3)",
+			"Cart.load -calls-> Cart.load > arrow (line 3)"
+		]);
+	});
+
+	it("should call the unit of a named function expression calling itself", () => {
+		expect.assertions(1);
+
+		const code = "export const count = function walk(n: number): number { return n <= 0 ? 0 : walk(n - 1); };";
+
+		expect(edgesOf(code, "module > function walk (line 1)")).toStrictEqual([
+			"module > function walk (line 1) -calls-> module > function walk (line 1)"
+		]);
+	});
+
+	it("should run the construction units of a module class built with new", () => {
+		expect.assertions(1);
+
+		const code = [
+			"class Cart {",
+			"\tstatic created = 0;",
+			"\titems = [];",
+			"\tconstructor(private readonly id: number) {}",
+			"\tsize() { return this.items.length; }",
+			"}",
+			"function make() { return new Cart(1); }"
+		].join("\n");
+
+		expect(edgesOf(code, "make")).toStrictEqual([
+			"make -calls-> Cart.items (initializer)",
+			"make -calls-> Cart.constructor"
+		]);
+	});
+
+	it("should may-run the callback an assumed factory built a called field from", () => {
+		expect.assertions(2);
+
+		const code = [
+			'import { computed } from "./lib";',
+			"class Cart {",
+			"\ttotal = computed(() => 1);",
+			"\ty = this.total();",
+			"\tz = this.total;",
+			"}"
+		].join("\n");
+		const { model, unit } = analyzeSource(code, { assumptions: { assumeCall: () => "signal-factory" } });
+		const describeEdges = (label: string): string[] =>
+			callEdgesFrom(model, unit(label).id).map((edge) => queryDescribeEdge(model, edge));
+
+		expect(describeEdges("Cart.y (initializer)")).toStrictEqual([
+			"Cart.y (initializer) -may-run-> Cart.total (initializer) > arrow (line 3)"
+		]);
+		expect(describeEdges("Cart.z (initializer)")).toStrictEqual([
+			"Cart.z (initializer) -may-run-> Cart.total (initializer) > arrow (line 3)"
+		]);
+	});
+
+	it("should evaluate the class-definition units of the classes the module defines, after its facts", () => {
+		expect.assertions(1);
+
+		const code = [
+			"const tag = (value: unknown) => value;",
+			"@tag",
+			"class Cart {",
+			"\tstatic base = 1;",
+			"\titems = [];",
+			"\tstatic {",
+			"\t\tCart.base = 2;",
+			"\t}",
+			"}"
+		].join("\n");
+
+		expect(edgesOf(code, "module")).toStrictEqual([
+			"module -defines-> module > arrow (line 1)",
+			"module -evaluates-> Cart (definition)",
+			"module -evaluates-> Cart.base (initializer)",
+			"module -evaluates-> Cart.static block"
+		]);
 	});
 
 	it("should follow calls between module functions", () => {

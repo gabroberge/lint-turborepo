@@ -148,12 +148,10 @@ describe(buildClassUnits, () => {
 			]);
 		});
 
-		it("should share the module's receiver, so this in a computed key is an unknown receiver", () => {
+		it("should share the module's receiver, so this in a computed key is undefined and reports nothing", () => {
 			expect.assertions(1);
 
-			expect(analyzeSource("class Shop { [this.key] = 1; }").facts("Shop (definition)")).toStrictEqual([
-				"unknown unknown-receiver: this.key"
-			]);
+			expect(analyzeSource("class Shop { [this.key] = 1; }").facts("Shop (definition)")).toStrictEqual([]);
 		});
 	});
 

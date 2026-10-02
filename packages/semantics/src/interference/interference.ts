@@ -28,13 +28,16 @@ export interface InterferenceEvidence {
  * Why two units' effects may depend on the order in which they run:
  * - `same-location`: both touch the same location tracked by the model (a
  *   member key of a module class, a module binding, a global by name), and
- *   at least one writes it, or one calls a member the other assigns;
+ *   at least one writes it;
  * - `opaque`: one side has an uncertainty after which it may touch anything
  *   (an escaping or unknown receiver, `super`, a dynamic member, `eval`, an
- *   unanalyzed declaration or assignment target); `second` is `null` when it
- *   is the first unit's, `first` when it is the second's;
+ *   unanalyzed declaration or assignment target), and the other side touches
+ *   something (an access to state, or an outside or opaque fact); `second`
+ *   is `null` when it is the first unit's, `first` when it is the second's;
  * - `outside-effects`: one side runs code outside the model or changes state
- *   the model does not track, and the other does the same or reads state
- *   that such code could change.
+ *   the model does not track, and the other does the same, reads state that
+ *   such code could change, or writes a module binding, global or static
+ *   member that a function handed to outside code reads (outside code
+ *   running on the first side may run that function).
  */
 export type InterferenceReason = "opaque" | "outside-effects" | "same-location";

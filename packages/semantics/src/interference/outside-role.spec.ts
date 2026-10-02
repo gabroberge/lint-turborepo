@@ -80,7 +80,7 @@ describe(outsideRole, () => {
 		]);
 	});
 
-	it("should classify member calls by what the member holds", () => {
+	it("should leave member calls to the unknown facts extraction adds, except assumed callables", () => {
 		expect.assertions(1);
 
 		const code = [
@@ -108,13 +108,18 @@ describe(outsideRole, () => {
 
 		expect(rolesOf(code, "A.m", options)).toStrictEqual([
 			"call A.f => null",
-			"call A.value => effect",
+			"call A.value => null",
+			"unknown call: this.value => effect",
 			"call A.count => external",
-			"call A.getter => effect",
-			"call A.p => effect",
-			"call A.shape => effect",
+			"call A.getter => null",
+			"unknown call: this.getter => effect",
+			"call A.p => null",
+			"unknown call: this.p => effect",
+			"call A.shape => null",
+			"unknown call: this.shape => effect",
 			"call A.m => null",
-			"call A.missing (undeclared) => effect"
+			"call A.missing (undeclared) => null",
+			"unknown call: this.missing => effect"
 		]);
 	});
 
@@ -134,7 +139,36 @@ describe(outsideRole, () => {
 		expect(rolesOf(code, "A.m")).toStrictEqual([
 			"write A.fromBase (undeclared) => opaque",
 			"read A.other (undeclared) => opaque",
-			"call A.inherited (undeclared) => opaque"
+			"call A.inherited (undeclared) => opaque",
+			"unknown call: this.inherited => effect"
+		]);
+	});
+
+	it("should classify a call of a module assumed callable as an external read", () => {
+		expect.assertions(1);
+
+		const code = [
+			'import { signal } from "@angular/core";',
+			"const count = signal(0);",
+			"function f() { return count(); }"
+		].join("\n");
+
+		expect(rolesOf(code, "f", { assumptions: QUERY_ANGULAR_ASSUMPTIONS })).toStrictEqual([
+			"call module count => external"
+		]);
+	});
+
+	it("should leave calls of a function literal's unit and constructions of a module class out", () => {
+		expect.assertions(1);
+
+		const code = ["class B {}", "function f() {", "\tconst g = () => 1;", "\tg();", "\treturn new B();", "}"].join(
+			"\n"
+		);
+
+		expect(rolesOf(code, "f")).toStrictEqual([
+			"function bound-locally: f > arrow (line 3) => null",
+			"call unit f > arrow (line 3) => null",
+			"construct module B => null"
 		]);
 	});
 

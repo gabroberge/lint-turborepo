@@ -54,6 +54,16 @@ export interface MemberEntity extends DeclarationBase {
 		| "parameter-property"
 		| "setter"
 		| "static-block";
+	/**
+	 * True when a field, accessor field, parameter property or method is
+	 * assigned in the module outside its own declaration: `this.key = …`,
+	 * `this.key += …`, `this.key++` or a destructuring target `this.key`
+	 * written in the class body (on the side of the class element containing
+	 * it), or `ClassName.key = …` for a static member anywhere in the module.
+	 * Assignments through other aliases are not seen. Always `false` for
+	 * other kinds (assigning a getter's key runs the setter).
+	 */
+	reassigned: boolean;
 	/** True for a body-less method signature (an overload or an abstract method). */
 	signature: boolean;
 	static: boolean;

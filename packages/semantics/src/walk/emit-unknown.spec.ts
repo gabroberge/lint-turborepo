@@ -77,13 +77,12 @@ describe(emitUnknown, () => {
 			expect(unknowns(code, label)).toContain("unknown receiver-escape: Cart");
 		});
 
-		it("should report new of the class in its own static code as a receiver escape and a construct", () => {
+		it("should record new of the class in its own static code as a construct of the class, not an escape", () => {
 			expect.assertions(1);
 
-			expect(unknowns("class Cart { static make() { return new Cart(); } }", "Cart.make")).toStrictEqual([
-				"unknown receiver-escape: Cart",
-				"unknown construct: new Cart()"
-			]);
+			expect(
+				analyzeSource("class Cart { static make() { return new Cart(); } }").facts("Cart.make")
+			).toStrictEqual(["construct module Cart"]);
 		});
 
 		it("should not report the class's name used as a value in instance code, which is a module binding read", () => {
@@ -111,12 +110,21 @@ describe(emitUnknown, () => {
 			],
 			["const f = function () { return this; };", "module > function (line 1)", "unknown unknown-receiver: this"],
 			["function f() { this.x; }", "f", "unknown unknown-receiver: this.x"],
-			["this.x;", "module", "unknown unknown-receiver: this.x"],
 			["const o = { m() { return this.y; } };", "module > function (line 1)", "unknown unknown-receiver: this.y"]
 		])("should report this in %s", (code, label, expected) => {
 			expect.assertions(1);
 
 			expect(unknowns(code, label)).toContain(expected);
+		});
+
+		it.each([
+			["this.x;", "module"],
+			["this.x = this.y();", "module"],
+			["const f = () => this;", "module > arrow (line 1)"]
+		])("should report nothing for module-level this, which is undefined, in %s", (code, label) => {
+			expect.assertions(1);
+
+			expect(analyzeSource(code).facts(label)).toStrictEqual([]);
 		});
 
 		it("should report both an unknown receiver and an unknown call for a called member", () => {
@@ -175,6 +183,15 @@ describe(emitUnknown, () => {
 			expect(
 				analyzeSource("declare enum Color { Red }\ndeclare namespace NS { const a: number; }").facts("module")
 			).toStrictEqual([]);
+		});
+
+		it("should report nothing for a const enum, which is erased, at module level or nested", () => {
+			expect.assertions(2);
+
+			const { facts } = analyzeSource("const enum Color { Red }\nexport function f() { const enum Size { S } }");
+
+			expect(facts("module")).toStrictEqual(["function stored: f"]);
+			expect(facts("f")).toStrictEqual([]);
 		});
 
 		it("should walk the expression of an export assignment", () => {

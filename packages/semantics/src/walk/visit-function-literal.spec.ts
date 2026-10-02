@@ -5,9 +5,11 @@ import { ANGULAR_ASSUMPTIONS } from "../testing/extraction-angular-assumptions";
 import { describeUnit } from "../testing/extraction-lookup";
 import { visitFunctionLiteral } from "./visit-function-literal";
 
-/** The `function` facts of `Cart.run`, a method whose body (on line 3) is `body`. */
+/** The `function` facts of `Cart.run`, a method whose body (on line 5) is `body`, next to a setter `value`. */
 function dispositions(body: string, imports = ""): string[] {
-	return analyzeSource(`${imports}\nclass Cart {\n\trun(param) { ${body} }\n}`, { assumptions: ANGULAR_ASSUMPTIONS })
+	return analyzeSource(`${imports}\nlet moduleLet;\nclass Cart {\n\tset value(v) {}\n\trun(param) { ${body} }\n}`, {
+		assumptions: ANGULAR_ASSUMPTIONS
+	})
 		.facts("Cart.run")
 		.filter((line) => line.startsWith("function"));
 }
@@ -23,7 +25,15 @@ describe(visitFunctionLiteral, () => {
 			["param.then(() => 1);", "passed-to-unknown"],
 			["setTimeout(function () {});", "passed-to-unknown"],
 			["return () => 1;", "passed-to-unknown"],
-			["this.handler = () => 1;", "passed-to-unknown"],
+			["this.handler = () => 1;", "stored"],
+			["this.handler ??= [() => 1];", "stored"],
+			["Cart.shared = () => 1;", "stored"],
+			["this[param] = () => 1;", "stored"],
+			["moduleLet = () => 1;", "stored"],
+			["let local;\nlocal = () => 1;", "bound-locally"],
+			["this.value = () => 1;", "passed-to-unknown"],
+			["globalThing = () => 1;", "passed-to-unknown"],
+			["[this.handler] = [() => 1];", "passed-to-unknown"],
 			["param.list = [() => 1];", "passed-to-unknown"],
 			["({ run: () => 1 });", "passed-to-unknown"]
 		])("should give the literal in %s the disposition %s", (body, disposition) => {
@@ -87,16 +97,36 @@ describe(visitFunctionLiteral, () => {
 				).toStrictEqual([`function ${disposition}`]);
 			});
 
-			it("should owe nothing to the field it initializes for a literal passed to an assumed call", () => {
+			it("should give a literal passed to an assumed call to the field it initializes", () => {
 				expect.assertions(1);
 
-				const { unit } = analyzeSource(
+				const { model, unit } = analyzeSource(
 					'import { computed } from "@angular/core";\nclass Cart {\n\ttotal = computed(() => 1);\n}',
 					{ assumptions: ANGULAR_ASSUMPTIONS }
 				);
 
-				expect(unit("Cart.total (initializer) > arrow (line 3)").declaration).toBeNull();
+				expect(describeUnit(model, unit("Cart.total (initializer) > arrow (line 3)"))).toBe(
+					"function | invocation | this: instance Cart | in Cart.total (initializer) | of Cart.total"
+				);
 			});
+		});
+	});
+
+	describe("owners of assigned literals", () => {
+		it.each([
+			["this.handler = () => 1;", "Cart.run > arrow (line 5)", "of Cart.handler"],
+			["Cart.shared = () => 1;", "Cart.run > arrow (line 5)", "of Cart.shared"],
+			["moduleLet = () => 1;", "Cart.run > arrow (line 5)", "of moduleLet"],
+			["this.undeclared = () => 1;", "Cart.run > arrow (line 5)", "of nothing"],
+			["param.x = () => 1;", "Cart.run > arrow (line 5)", "of nothing"]
+		])("should give the literal in %s (%s) the owner %s", (body, label, owner) => {
+			expect.assertions(1);
+
+			const { model, unit } = analyzeSource(
+				`let moduleLet;\nclass Cart {\n\thandler = () => 0;\n\tstatic shared = null;\n\trun(param) { ${body} }\n}`
+			);
+
+			expect(describeUnit(model, unit(label))).toMatch(new RegExp(`\\| ${owner}$`, "u"));
 		});
 	});
 
