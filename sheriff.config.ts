@@ -21,6 +21,7 @@ export const config: SheriffConfig = {
 	entryPoints: {
 		angular: "./packages/angular/src/index.ts",
 		ast: "./packages/ast/src/index.ts",
+		"class-analyzer": "./packages/class-analyzer/src/index.ts",
 		estree: "./packages/estree/src/index.ts",
 		nestjs: "./packages/nestjs/src/index.ts",
 		plugin: "./packages/plugin/src/index.ts",

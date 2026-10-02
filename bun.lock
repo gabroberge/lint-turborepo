@@ -32,30 +32,39 @@
     },
     "packages/angular": {
       "name": "@gabroberge/eslint-plugin-angular",
-      "version": "0.0.0",
+      "version": "0.1.1",
       "dependencies": {
         "@gabroberge/oxlint-estree": "workspace:*",
         "@gabroberge/oxlint-plugin": "workspace:*",
+        "@gabroberge/typescript-class-analyzer": "workspace:*",
         "@oxlint/plugins": "^1.86.0",
       },
     },
     "packages/ast": {
       "name": "@gabroberge/typescript-ast",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "typescript": "6.0.3",
       },
     },
+    "packages/class-analyzer": {
+      "name": "@gabroberge/typescript-class-analyzer",
+      "version": "0.0.0",
+      "dependencies": {
+        "@gabroberge/oxlint-estree": "workspace:*",
+        "@oxlint/plugins": "^1.86.0",
+      },
+    },
     "packages/estree": {
       "name": "@gabroberge/oxlint-estree",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@oxlint/plugins": "^1.86.0",
       },
     },
     "packages/nestjs": {
       "name": "@gabroberge/eslint-plugin-nestjs",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@gabroberge/oxlint-estree": "workspace:*",
         "@gabroberge/oxlint-plugin": "workspace:*",
@@ -70,14 +79,14 @@
     },
     "packages/plugin": {
       "name": "@gabroberge/oxlint-plugin",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@oxlint/plugins": "^1.86.0",
       },
     },
     "packages/typescript": {
       "name": "@gabroberge/eslint-plugin-typescript",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@gabroberge/oxlint-estree": "workspace:*",
         "@gabroberge/oxlint-plugin": "workspace:*",
@@ -86,7 +95,7 @@
     },
     "packages/vitest": {
       "name": "@gabroberge/eslint-plugin-vitest",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@gabroberge/oxlint-estree": "workspace:*",
         "@gabroberge/oxlint-plugin": "workspace:*",
@@ -219,6 +228,8 @@
     "@gabroberge/oxlint-plugin": ["@gabroberge/oxlint-plugin@workspace:packages/plugin"],
 
     "@gabroberge/typescript-ast": ["@gabroberge/typescript-ast@workspace:packages/ast"],
+
+    "@gabroberge/typescript-class-analyzer": ["@gabroberge/typescript-class-analyzer@workspace:packages/class-analyzer"],
 
     "@humanfs/core": ["@humanfs/core@0.19.2", "", { "dependencies": { "@humanfs/types": "^0.15.0" } }, "sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA=="],
 
