@@ -1,5 +1,11 @@
 # @gabroberge/oxlint-estree
 
+## 0.1.2
+
+### Patch Changes
+
+- [`4d0d56f`](https://github.com/gabroberge/lint-turborepo/commit/4d0d56f7678b30d2b8003e556e23752b6397cc3b) Thanks [@gabroberge](https://github.com/gabroberge)! - Add npm keywords for the ESTree helpers.
+
 ## 0.1.1
 
 ### Patch Changes
