@@ -356,3 +356,33 @@ These are findings from the investigation; the implementation will follow.
    `be8f708` (its documentation).
 10. **The soundness findings in section 6 become explicit test cases** for the new core, so that holes previously masked
     by `conflictBetween` are either fixed or recorded as uncertainty with a reason.
+
+## 10. Outcome
+
+The direction in section 9 was implemented as `@gabroberge/typescript-semantics` (`packages/semantics`). Its README
+documents the model, the guarantees and the limitations.
+
+- **Core:**
+    - declarations: classes, functions, variables, imports and members, with `#x` distinct from `"#x"`;
+    - units with a trigger and a receiver;
+    - direct facts: `access`, `unknown` with a reason, and `function` with a disposition.
+- **Queries:**
+    - call edges (`calls`, `invokes`, `may-run`, `evaluates`, `defines`) and reached facts with paths;
+    - recursive unit groups and declaration dependencies;
+    - unit interference, which is the old conflict re-expressed;
+    - decision points with guards and Istanbul coverage kinds;
+    - generic SCC and reachability algorithms.
+- **Assumptions** stay consumer-supplied (`factory`, `signal-factory`). The engine contains no framework names except
+  that wording.
+- **Section 6 holes:** every one is fixed or recorded as uncertainty. This includes the method-overwrite case, which is
+  now a `definite` interference between a call and a write of the same key.
+- **Holes found later:** an independent review found more, and they were fixed: decorators, computed-key fields,
+  unfollowable member calls, module evaluation of static code, and callbacks handed to outside code.
+- **Interference is checked against runtime behaviour** by a `node:vm` oracle that swaps adjacent field initializers of
+  random classes.
+- **Still open, and documented as limitations:**
+    - cross-module resolution;
+    - aliasing beyond `this` and module class names;
+    - implicit code in property access, iteration and conversions;
+    - type-only dependencies such as dependency-injection metadata;
+    - path copying in `reachedFacts`, which grows cubically on very long call chains.
