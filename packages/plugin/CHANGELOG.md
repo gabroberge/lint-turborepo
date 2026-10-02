@@ -1,5 +1,11 @@
 # @gabroberge/oxlint-plugin
 
+## 0.1.1
+
+### Patch Changes
+
+- [#3](https://github.com/gabroberge/lint-turborepo/pull/3) [`fa0d155`](https://github.com/gabroberge/lint-turborepo/commit/fa0d155f9bd058da5d228c0dab1915fd61a16ed1) Thanks [@gabroberge](https://github.com/gabroberge)! - Document `defineConfiguredPlugin` and the `all` / `recommended` configs.
+
 ## 0.1.0
 
 ### Minor Changes
