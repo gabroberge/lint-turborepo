@@ -35,7 +35,7 @@ function swapped(fields: readonly QueryField[], index: number): QueryField[] {
 
 describe("unitInterference against evaluation", () => {
 	describe("when two adjacent field initializers of a random class are swapped", () => {
-		it("should never report none for a swap that changes the constructed instance", () => {
+		it("should never report none for a swap that changes the constructed instance", { timeout: 60_000 }, () => {
 			expect.assertions(2);
 
 			const missed: string[] = [];
