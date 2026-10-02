@@ -158,12 +158,32 @@ describe(emitUnknown, () => {
 			]);
 		});
 
-		it("should report a module-level enum or namespace as nothing, since it is not walked", () => {
+		it("should report a module-level enum or namespace, whose body runs with the module", () => {
 			expect.assertions(1);
 
 			expect(
 				analyzeSource("enum Color { Red }\nnamespace NS { export const a = run(); }").facts("module")
+			).toStrictEqual([
+				"unknown unanalyzed-declaration: enum Color { Red }",
+				"unknown unanalyzed-declaration: namespace NS { export const a = run(); }"
+			]);
+		});
+
+		it("should report nothing for ambient enums and namespaces", () => {
+			expect.assertions(1);
+
+			expect(
+				analyzeSource("declare enum Color { Red }\ndeclare namespace NS { const a: number; }").facts("module")
 			).toStrictEqual([]);
+		});
+
+		it("should walk the expression of an export assignment", () => {
+			expect.assertions(1);
+
+			expect(analyzeSource("export = run();").facts("module")).toStrictEqual([
+				"call global run (mutable)",
+				"unknown call: run()"
+			]);
 		});
 
 		it("should not walk into a nested class", () => {

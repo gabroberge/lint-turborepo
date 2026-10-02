@@ -81,6 +81,20 @@ function buildFunctionDeclaration(draft: ModelDraft, unit: Unit, node: ESTree.Fu
 }
 
 function buildStatement(draft: ModelDraft, unit: Unit, node: ESTree.Node): void {
+	if (node.type === "TSEnumDeclaration" || node.type === "TSModuleDeclaration") {
+		// Unless ambient, their bodies run when the module is evaluated; the model does not analyze them.
+		if (!node.declare) {
+			walkCode(draft, unit, node, "run");
+		}
+
+		return;
+	}
+
+	if (node.type === "TSExportAssignment") {
+		walkCode(draft, unit, node.expression, "store");
+		return;
+	}
+
 	if (node.type === "ImportDeclaration" || node.type.startsWith("TS")) {
 		return;
 	}

@@ -7,8 +7,8 @@ import type { Unit } from "./unit";
 /** Everything the model knows about one module: its declarations and its executable units. */
 export interface ModuleModel {
 	/**
-	 * Nodes where another unit's code starts (function literals, member
-	 * bodies, module classes). A walk over one unit's code stops at them.
+	 * Nodes where another unit's code starts: function literals and module
+	 * classes (whose node covers their members' code). A walk over one unit's code stops at them.
 	 */
 	boundaries: ReadonlySet<ESTree.Node>;
 	declarations: ReadonlyMap<DeclarationId, Declaration>;
