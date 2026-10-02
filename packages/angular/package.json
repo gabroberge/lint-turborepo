@@ -47,6 +47,7 @@
 	"dependencies": {
 		"@gabroberge/oxlint-estree": "workspace:*",
 		"@gabroberge/oxlint-plugin": "workspace:*",
+		"@gabroberge/typescript-class-analyzer": "workspace:*",
 		"@oxlint/plugins": "^1.86.0"
 	}
 }
