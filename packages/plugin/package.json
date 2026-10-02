@@ -3,7 +3,11 @@
 	"version": "0.1.1",
 	"private": false,
 	"description": "",
-	"keywords": [],
+	"keywords": [
+		"eslint",
+		"oxlint",
+		"plugin"
+	],
 	"homepage": "https://github.com/gabroberge/lint-turborepo#readme",
 	"bugs": "https://github.com/gabroberge/lint-turborepo/issues",
 	"license": "MIT",
