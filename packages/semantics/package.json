@@ -1,14 +1,15 @@
 {
-	"name": "@gabroberge/typescript-class-analyzer",
+	"name": "@gabroberge/typescript-semantics",
 	"version": "0.0.0",
 	"private": false,
-	"description": "Initialization-order analysis for TypeScript classes: member timelines, eager and deferred execution, member dependencies, side effects and ordering constraints.",
+	"description": "A semantic model of TypeScript modules: declarations, executable units, evidence-bearing access and uncertainty facts, and derived call, dependency and interference queries.",
 	"keywords": [
 		"ast",
-		"class",
+		"dependencies",
 		"estree",
-		"initialization",
 		"oxlint",
+		"semantics",
+		"static-analysis",
 		"typescript"
 	],
 	"homepage": "https://github.com/gabroberge/lint-turborepo#readme",

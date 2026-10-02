@@ -6,23 +6,23 @@ Oxlint/ESLint plugins and the shared AST helpers they use. The repo is a Bun + T
 
 ### Plugins
 
-| Package                                                                 | Registers as     | Role                                                               |
-| ----------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------ |
-| [`@gabroberge/eslint-plugin-angular`](packages/angular/README.md)       | `angular`        | Angular member order, `readonly` resources and `protected` outputs |
-| [`@gabroberge/eslint-plugin-nestjs`](packages/nestjs/README.md)         | `nestjs`         | NestJS controller route order                                      |
-| [`@gabroberge/eslint-plugin-typescript`](packages/typescript/README.md) | `typescript`     | Array species and sorted `export … from`                           |
-| [`@gabroberge/eslint-plugin-vitest`](packages/vitest/README.md)         | `vitestExtended` | Nest/Vitest spec structure and assertions                          |
+| Package                                                                 | Registers as     | Role                                                 |
+| ----------------------------------------------------------------------- | ---------------- | ---------------------------------------------------- |
+| [`@gabroberge/eslint-plugin-angular`](packages/angular/README.md)       | `angular`        | Angular `readonly` resources and `protected` outputs |
+| [`@gabroberge/eslint-plugin-nestjs`](packages/nestjs/README.md)         | `nestjs`         | NestJS controller route order                        |
+| [`@gabroberge/eslint-plugin-typescript`](packages/typescript/README.md) | `typescript`     | Array species and sorted `export … from`             |
+| [`@gabroberge/eslint-plugin-vitest`](packages/vitest/README.md)         | `vitestExtended` | Nest/Vitest spec structure and assertions            |
 
 Each plugin exposes `configs.recommended` and `configs.all`.
 
 ### Helpers
 
-| Package                                                                      | Role                                                                           |
-| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| [`@gabroberge/oxlint-plugin`](packages/plugin/README.md)                     | `defineConfiguredPlugin` plus `all` / `recommended` configs                    |
-| [`@gabroberge/oxlint-estree`](packages/estree/README.md)                     | ESTree names, ranges, scope, shapes, and traversal                             |
-| [`@gabroberge/typescript-class-analyzer`](packages/class-analyzer/README.md) | Class initialization order: dependencies, side effects, reordering constraints |
-| [`@gabroberge/typescript-ast`](packages/ast/README.md)                       | TypeScript class, modifier, and source helpers                                 |
+| Package                                                            | Role                                                                                |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| [`@gabroberge/oxlint-plugin`](packages/plugin/README.md)           | `defineConfiguredPlugin` plus `all` / `recommended` configs                         |
+| [`@gabroberge/oxlint-estree`](packages/estree/README.md)           | ESTree names, ranges, scope, shapes, and traversal                                  |
+| [`@gabroberge/typescript-semantics`](packages/semantics/README.md) | Semantic facts about TypeScript modules: declarations, accesses, calls, uncertainty |
+| [`@gabroberge/typescript-ast`](packages/ast/README.md)             | TypeScript class, modifier, and source helpers                                      |
 
 ## Use a plugin
 
@@ -43,8 +43,6 @@ export default [
 Oxlint loads the same default export through `jsPlugins`. See each package README for rules, options, and an Oxlint snippet.
 
 The Nest/Vitest test grammar those rules assume is in [docs/test-grammar.md](docs/test-grammar.md).
-
-How `angular/ordered-class-members` orders members, and when its autofix is withheld, is described in [docs/ordered-class-members.md](docs/ordered-class-members.md).
 
 ## Develop
 

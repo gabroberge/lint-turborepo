@@ -36,7 +36,6 @@
       "dependencies": {
         "@gabroberge/oxlint-estree": "workspace:*",
         "@gabroberge/oxlint-plugin": "workspace:*",
-        "@gabroberge/typescript-class-analyzer": "workspace:*",
         "@oxlint/plugins": "^1.86.0",
       },
     },
@@ -45,14 +44,6 @@
       "version": "0.1.2",
       "dependencies": {
         "typescript": "6.0.3",
-      },
-    },
-    "packages/class-analyzer": {
-      "name": "@gabroberge/typescript-class-analyzer",
-      "version": "0.0.0",
-      "dependencies": {
-        "@gabroberge/oxlint-estree": "workspace:*",
-        "@oxlint/plugins": "^1.86.0",
       },
     },
     "packages/estree": {
@@ -81,6 +72,14 @@
       "name": "@gabroberge/oxlint-plugin",
       "version": "0.1.2",
       "dependencies": {
+        "@oxlint/plugins": "^1.86.0",
+      },
+    },
+    "packages/semantics": {
+      "name": "@gabroberge/typescript-semantics",
+      "version": "0.0.0",
+      "dependencies": {
+        "@gabroberge/oxlint-estree": "workspace:*",
         "@oxlint/plugins": "^1.86.0",
       },
     },
@@ -229,7 +228,7 @@
 
     "@gabroberge/typescript-ast": ["@gabroberge/typescript-ast@workspace:packages/ast"],
 
-    "@gabroberge/typescript-class-analyzer": ["@gabroberge/typescript-class-analyzer@workspace:packages/class-analyzer"],
+    "@gabroberge/typescript-semantics": ["@gabroberge/typescript-semantics@workspace:packages/semantics"],
 
     "@humanfs/core": ["@humanfs/core@0.19.2", "", { "dependencies": { "@humanfs/types": "^0.15.0" } }, "sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA=="],
 
