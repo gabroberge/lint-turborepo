@@ -10,6 +10,8 @@ export { typeReferenceName } from "./name/type-reference-name";
 export { endOf } from "./range/end-of";
 export type { Ranged } from "./range/ranged";
 export { startOf } from "./range/start-of";
+export type { IdentifierNode } from "./scope/identifier-node";
+export { resolveVariable } from "./scope/resolve-variable";
 export { areIdenticalSafeExpressions } from "./shape/are-identical-safe-expressions";
 export { isCopyableReference } from "./shape/is-copyable-reference";
 export { isCopyableReferenceTo } from "./shape/is-copyable-reference-to";

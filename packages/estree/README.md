@@ -43,6 +43,13 @@ traverse(program, (child) => {
 | `unwrapExpression`        | Strip grouping and other transparent wrappers |
 | `unwrapAwaitedExpression` | Also unwrap `await`                           |
 
+### Scope
+
+| Export            | Role                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------- |
+| `resolveVariable` | The variable an identifier reference resolves to, or `null` for a global or unresolved name |
+| `IdentifierNode`  | Any identifier node, whatever position it was parsed in                                     |
+
 ### Shape
 
 | Export                                          | Role                                                   |
