@@ -1,5 +1,14 @@
 # @gabroberge/eslint-plugin-nestjs
 
+## 0.1.2
+
+### Patch Changes
+
+- [#7](https://github.com/gabroberge/lint-turborepo/pull/7) [`4d0d56f`](https://github.com/gabroberge/lint-turborepo/commit/4d0d56f7678b30d2b8003e556e23752b6397cc3b) Thanks [@gabroberge](https://github.com/gabroberge)! - Add npm keywords for the NestJS plugin.
+- Updated dependencies [[`4d0d56f`](https://github.com/gabroberge/lint-turborepo/commit/4d0d56f7678b30d2b8003e556e23752b6397cc3b), [`4d0d56f`](https://github.com/gabroberge/lint-turborepo/commit/4d0d56f7678b30d2b8003e556e23752b6397cc3b)]:
+    - @gabroberge/oxlint-estree@0.1.2
+    - @gabroberge/oxlint-plugin@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes
