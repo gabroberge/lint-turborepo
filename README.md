@@ -6,11 +6,12 @@ Oxlint/ESLint plugins and the shared AST helpers they use. The repo is a Bun + T
 
 ### Plugins
 
-| Package                                                                 | Registers as     | Role                                      |
-| ----------------------------------------------------------------------- | ---------------- | ----------------------------------------- |
-| [`@gabroberge/eslint-plugin-nestjs`](packages/nestjs/README.md)         | `nestjs`         | NestJS controller route order             |
-| [`@gabroberge/eslint-plugin-typescript`](packages/typescript/README.md) | `typescript`     | Array species and sorted `export … from`  |
-| [`@gabroberge/eslint-plugin-vitest`](packages/vitest/README.md)         | `vitestExtended` | Nest/Vitest spec structure and assertions |
+| Package                                                                 | Registers as     | Role                                                 |
+| ----------------------------------------------------------------------- | ---------------- | ---------------------------------------------------- |
+| [`@gabroberge/eslint-plugin-angular`](packages/angular/README.md)       | `angular`        | Angular `readonly` resources and `protected` outputs |
+| [`@gabroberge/eslint-plugin-nestjs`](packages/nestjs/README.md)         | `nestjs`         | NestJS controller route order                        |
+| [`@gabroberge/eslint-plugin-typescript`](packages/typescript/README.md) | `typescript`     | Array species and sorted `export … from`             |
+| [`@gabroberge/eslint-plugin-vitest`](packages/vitest/README.md)         | `vitestExtended` | Nest/Vitest spec structure and assertions            |
 
 Each plugin exposes `configs.recommended` and `configs.all`.
 
@@ -25,11 +26,17 @@ Each plugin exposes `configs.recommended` and `configs.all`.
 ## Use a plugin
 
 ```js
+import angular from "@gabroberge/eslint-plugin-angular";
 import nestjs from "@gabroberge/eslint-plugin-nestjs";
 import typescript from "@gabroberge/eslint-plugin-typescript";
 import vitestExtended from "@gabroberge/eslint-plugin-vitest";
 
-export default [nestjs.configs.recommended, typescript.configs.recommended, vitestExtended.configs.recommended];
+export default [
+	angular.configs.recommended,
+	nestjs.configs.recommended,
+	typescript.configs.recommended,
+	vitestExtended.configs.recommended
+];
 ```
 
 Oxlint loads the same default export through `jsPlugins`. See each package README for rules, options, and an Oxlint snippet.

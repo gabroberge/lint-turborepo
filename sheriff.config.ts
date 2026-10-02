@@ -19,6 +19,7 @@ export const config: SheriffConfig = {
 	},
 	enableBarrelLess: true,
 	entryPoints: {
+		angular: "./packages/angular/src/index.ts",
 		ast: "./packages/ast/src/index.ts",
 		estree: "./packages/estree/src/index.ts",
 		nestjs: "./packages/nestjs/src/index.ts",
