@@ -1,11 +1,6 @@
-import type { ClassAssumptions } from "./class-assumptions";
+import type { Assumptions } from "./assumptions";
 
-/**
- * Assume nothing about outside code: every call that does not reach the
- * class's own code (methods, accessors and function fields called through
- * `this`, immediately invoked function literals) is unknown code, a side
- * effect whose function arguments run right away.
- */
-export const NO_ASSUMPTIONS: ClassAssumptions = {
+/** Assume nothing about outside code: every call into it is unknown code. */
+export const NO_ASSUMPTIONS: Assumptions = {
 	assumeCall: () => null
 };

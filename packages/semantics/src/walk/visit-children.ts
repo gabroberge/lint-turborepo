@@ -29,7 +29,7 @@ export function visitChildren(walker: Walker, node: ESTree.Node): void {
 		const items: unknown[] = Array.isArray(value) ? value : [value];
 		for (const item of items) {
 			if (isNode(item)) {
-				walker.visit(item, false);
+				walker.visit(item, "run");
 			}
 		}
 	}

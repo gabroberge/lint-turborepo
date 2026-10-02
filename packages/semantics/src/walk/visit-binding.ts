@@ -6,7 +6,7 @@ import type { Walker } from "./walker";
 export function visitBinding(walker: Walker, node: ESTree.Node): void {
 	if (node.type === "AssignmentPattern") {
 		visitBinding(walker, node.left);
-		walker.visit(node.right, false);
+		walker.visit(node.right, "run");
 	} else if (node.type === "ArrayPattern") {
 		for (const element of node.elements) {
 			if (element !== null) {
@@ -21,7 +21,7 @@ export function visitBinding(walker: Walker, node: ESTree.Node): void {
 			}
 
 			if (property.computed) {
-				walker.visit(property.key, false);
+				walker.visit(property.key, "run");
 			}
 
 			visitBinding(walker, property.value);

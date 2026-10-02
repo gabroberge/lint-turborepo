@@ -1,25 +1,27 @@
 import type { ESTree } from "@oxlint/plugins";
 
+import type { MemberKey } from "../model/member-key";
+
 /**
  * The runtime key of a class element: an identifier, a `#private` name, or
- * a computed string / number literal. Any other computed key is `null`.
+ * a computed string or number literal. Any other computed key is `null`.
  */
-export function memberKey(node: ESTree.ClassElement): string | null {
+export function memberKey(node: ESTree.ClassElement): MemberKey | null {
 	if (node.type === "StaticBlock" || node.type === "TSIndexSignature") {
 		return null;
 	}
 
 	const { key } = node;
 	if (key.type === "PrivateIdentifier") {
-		return `#${key.name}`;
+		return { name: key.name, private: true };
 	}
 
 	if (!node.computed && key.type === "Identifier") {
-		return key.name;
+		return { name: key.name, private: false };
 	}
 
 	if (key.type === "Literal" && (typeof key.value === "string" || typeof key.value === "number")) {
-		return String(key.value);
+		return { name: String(key.value), private: false };
 	}
 
 	return null;

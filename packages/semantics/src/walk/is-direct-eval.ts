@@ -13,6 +13,6 @@ export function isDirectEval(walker: Walker, call: ESTree.CallExpression, callee
 	}
 
 	// A global resolves to nothing, or to a declared global without definitions.
-	const variable = resolveVariable(walker.scope.sourceCode, callee);
+	const variable = resolveVariable(walker.draft.sourceCode, callee);
 	return variable === null || variable.defs.length === 0;
 }

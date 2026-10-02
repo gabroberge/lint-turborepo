@@ -1,18 +1,26 @@
 import type { IdentifierNode } from "@gabroberge/oxlint-estree";
 
-import { bindingKind } from "./binding-kind";
-import { isSelf } from "./is-self";
-import { markOpaque } from "./mark-opaque";
+import { resolveIdentifier } from "../resolve/resolve-identifier";
+import { emitAccess } from "./emit-access";
+import { emitUnknown } from "./emit-unknown";
 import type { Walker } from "./walker";
 
 /**
- * An identifier read for its value. The class's own name in static code is
- * the class object escaping, like a bare `this`.
+ * An identifier read for its value. Locals of the unit are not reported.
+ * The class's own name used as a value in its static code hands the
+ * receiver to other code, like a bare `this`.
  */
 export function visitIdentifier(walker: Walker, node: IdentifierNode): void {
-	if (isSelf(walker, node)) {
-		markOpaque(walker);
-	} else if (bindingKind(walker.scope, node) === "mutable") {
-		walker.effects.external = true;
+	const resolution = resolveIdentifier(walker, node);
+	if (resolution.kind === "local") {
+		return;
 	}
+
+	const { receiver } = walker.unit;
+	if (resolution.kind === "class" && receiver.kind === "class" && receiver.class === resolution.class) {
+		emitUnknown(walker, "receiver-escape", node);
+		return;
+	}
+
+	emitAccess(walker, "read", resolution.target, node);
 }

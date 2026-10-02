@@ -1,14 +1,18 @@
-import { markOpaque } from "./mark-opaque";
+import { emitUnknown } from "./emit-unknown";
 import type { NodeHandlers, NodeOf } from "./node-handler";
 import { visitBinding } from "./visit-binding";
 import { visitCall } from "./visit-call";
+import { visitChildren } from "./visit-children";
 import { visitIdentifier } from "./visit-identifier";
 import { visitIteration } from "./visit-iteration";
 import { visitMember } from "./visit-member";
 import { visitSpread } from "./visit-spread";
 import { visitSuspension } from "./visit-suspension";
 import { visitTarget } from "./visit-target";
+import { visitThis } from "./visit-this";
 import type { Walker } from "./walker";
+
+type Unanalyzed = NodeOf<"ClassDeclaration" | "ClassExpression" | "TSEnumDeclaration" | "TSModuleDeclaration">;
 
 type Wrapper = NodeOf<
 	| "ChainExpression"
@@ -20,12 +24,21 @@ type Wrapper = NodeOf<
 	| "TSTypeAssertion"
 >;
 
-function nothing(): void {
-	// Evaluating it has no effect.
+function jsx(walker: Walker, node: NodeOf<"JSXElement" | "JSXFragment">): void {
+	emitUnknown(walker, "call", node);
+	visitChildren(walker, node);
 }
 
-function passThrough(walker: Walker, node: Wrapper, flow: boolean): void {
+function nothing(): void {
+	// Evaluating it touches nothing outside the unit.
+}
+
+function passThrough(walker: Walker, node: Wrapper, flow: Parameters<Walker["visit"]>[1]): void {
 	walker.visit(node.expression, flow);
+}
+
+function unanalyzed(walker: Walker, node: Unanalyzed): void {
+	emitUnknown(walker, "unanalyzed-declaration", node);
 }
 
 /**
@@ -43,7 +56,7 @@ export const NODE_HANDLERS: NodeHandlers = {
 	},
 	AssignmentExpression(walker, node) {
 		visitTarget(walker, node.left, node.operator !== "=");
-		walker.visit(node.right, false);
+		walker.visit(node.right, "run");
 	},
 	AwaitExpression: visitSuspension,
 	CallExpression: visitCall,
@@ -52,13 +65,13 @@ export const NODE_HANDLERS: NodeHandlers = {
 			visitBinding(walker, node.param);
 		}
 
-		walker.visit(node.body, false);
+		walker.visit(node.body, "run");
 	},
 	ChainExpression: passThrough,
-	ClassDeclaration: markOpaque,
-	ClassExpression: markOpaque,
+	ClassDeclaration: unanalyzed,
+	ClassExpression: unanalyzed,
 	ConditionalExpression(walker, node, flow) {
-		walker.visit(node.test, false);
+		walker.visit(node.test, "run");
 		walker.visit(node.consequent, flow);
 		walker.visit(node.alternate, flow);
 	},
@@ -66,16 +79,18 @@ export const NODE_HANDLERS: NodeHandlers = {
 	ForOfStatement: visitIteration,
 	Identifier: visitIdentifier,
 	ImportExpression(walker, node) {
-		walker.visit(node.source, false);
-		walker.effects.sideEffects = true;
+		walker.visit(node.source, "run");
+		emitUnknown(walker, "dynamic-import", node);
 	},
+	JSXElement: jsx,
+	JSXFragment: jsx,
 	Literal: nothing,
 	LogicalExpression(walker, node, flow) {
 		walker.visit(node.left, flow);
 		walker.visit(node.right, flow);
 	},
 	MemberExpression(walker, node) {
-		visitMember(walker, node, false);
+		visitMember(walker, node, "read");
 	},
 	MetaProperty: nothing,
 	NewExpression: visitCall,
@@ -87,7 +102,7 @@ export const NODE_HANDLERS: NodeHandlers = {
 			}
 
 			if (property.computed) {
-				walker.visit(property.key, false);
+				walker.visit(property.key, "run");
 			}
 
 			walker.visit(property.value, flow);
@@ -97,32 +112,34 @@ export const NODE_HANDLERS: NodeHandlers = {
 	PrivateIdentifier: nothing,
 	SequenceExpression(walker, node, flow) {
 		for (const [index, expression] of node.expressions.entries()) {
-			walker.visit(expression, flow && index === node.expressions.length - 1);
+			walker.visit(expression, index === node.expressions.length - 1 ? flow : "run");
 		}
 	},
 	SpreadElement: visitSpread,
-	Super: markOpaque,
-	TaggedTemplateExpression(walker, node) {
-		walker.visit(node.tag, false);
-		walker.visit(node.quasi, false);
-		walker.effects.sideEffects = true;
+	Super(walker, node) {
+		emitUnknown(walker, "super", node);
 	},
-	ThisExpression: markOpaque,
+	TaggedTemplateExpression(walker, node) {
+		walker.visit(node.tag, "run");
+		walker.visit(node.quasi, "run");
+		emitUnknown(walker, "tagged-template", node);
+	},
+	ThisExpression: visitThis,
 	TSAsExpression: passThrough,
-	TSEnumDeclaration: markOpaque,
+	TSEnumDeclaration: unanalyzed,
 	TSInstantiationExpression: passThrough,
-	TSModuleDeclaration: markOpaque,
+	TSModuleDeclaration: unanalyzed,
 	TSNonNullExpression: passThrough,
 	TSSatisfiesExpression: passThrough,
 	TSTypeAssertion: passThrough,
 	UnaryExpression(walker, node) {
 		if (node.operator === "delete") {
 			visitTarget(walker, node.argument, false);
-			walker.effects.sideEffects = true;
+			emitUnknown(walker, "delete", node);
 			return;
 		}
 
-		walker.visit(node.argument, false);
+		walker.visit(node.argument, "run");
 	},
 	UpdateExpression(walker, node) {
 		visitTarget(walker, node.argument, true);
@@ -130,7 +147,7 @@ export const NODE_HANDLERS: NodeHandlers = {
 	VariableDeclarator(walker, node) {
 		visitBinding(walker, node.id);
 		if (node.init !== null) {
-			walker.visit(node.init, false);
+			walker.visit(node.init, "local");
 		}
 	},
 	YieldExpression: visitSuspension

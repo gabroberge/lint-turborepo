@@ -1,33 +1,52 @@
 import { unwrapExpression } from "@gabroberge/oxlint-estree";
 import type { ESTree } from "@oxlint/plugins";
 
+import { memberTarget } from "../resolve/member-target";
+import { resolveObject } from "../resolve/resolve-object";
 import { accessKey } from "./access-key";
-import { isSelf } from "./is-self";
-import { useMember } from "./use-member";
+import { emitAccess } from "./emit-access";
+import { emitUnknown } from "./emit-unknown";
 import type { Walker } from "./walker";
-import { writeMember } from "./write-member";
 
-/**
- * A member access assigned to. A member of the analyzed object is written by
- * key (read first when `compound`); a property of any other object is a side
- * effect.
- */
-export function visitMemberTarget(walker: Walker, target: ESTree.MemberExpression, compound: boolean): void {
-	const object = unwrapExpression(target.object);
-	if (isSelf(walker, object)) {
-		const key = accessKey(target);
-		if (compound) {
-			useMember(walker, key, false);
-		}
+/** A member assigned to (and read first when `compound`). */
+export function visitMemberTarget(walker: Walker, node: ESTree.MemberExpression, compound: boolean): void {
+	const object = unwrapExpression(node.object);
+	if (node.computed) {
+		walker.visit(node.property, "run");
+	}
 
-		writeMember(walker, key);
+	if (object.type === "Super") {
+		emitUnknown(walker, "super", node);
 		return;
 	}
 
-	walker.visit(object, false);
-	if (target.computed) {
-		walker.visit(target.property, false);
+	const resolution = resolveObject(walker, object);
+	const key = accessKey(node);
+	if (resolution.kind === "unknown-receiver") {
+		emitUnknown(walker, "unknown-receiver", node);
+		return;
 	}
 
-	walker.effects.sideEffects = true;
+	if (resolution.kind === "class-member") {
+		if (key === null) {
+			emitUnknown(walker, "dynamic-member", node);
+			return;
+		}
+
+		const target = memberTarget(walker.draft, resolution.class, key, resolution.static);
+		if (compound) {
+			emitAccess(walker, "read", target, node);
+		}
+
+		emitAccess(walker, "write", target, node);
+		return;
+	}
+
+	walker.visit(object, "run");
+	const target = { kind: "property", name: key?.name ?? null } as const;
+	if (compound) {
+		emitAccess(walker, "read", target, node);
+	}
+
+	emitAccess(walker, "write", target, node);
 }

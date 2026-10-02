@@ -1,16 +1,17 @@
-import type { FunctionNode } from "@gabroberge/oxlint-estree";
 import type { ESTree } from "@oxlint/plugins";
 
-import type { Effects } from "../effects/effects";
-import type { AnalysisScope } from "./analysis-scope";
+import type { ModelDraft } from "../build/model-draft";
+import type { Fact } from "../model/fact";
+import type { DeclarationId } from "../model/ids";
+import type { Unit } from "../model/unit";
+import type { Flow } from "./flow";
 
-/**
- * The state of one effect analysis. `visit` evaluates a node; with `flow`, a
- * function literal is a stored value and is deferred rather than run.
- */
+/** The state of one walk over a unit's own code. */
 export interface Walker {
-	deferred: FunctionNode[];
-	effects: Effects;
-	scope: AnalysisScope;
-	visit: (node: ESTree.Node, flow: boolean) => void;
+	draft: ModelDraft;
+	emit: (fact: Fact) => void;
+	/** The declaration whose value a stored function literal becomes part of, if any. */
+	storeOwner: DeclarationId | null;
+	unit: Unit;
+	visit: (node: ESTree.Node, flow: Flow) => void;
 }

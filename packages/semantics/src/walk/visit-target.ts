@@ -1,29 +1,35 @@
 import { unwrapExpression } from "@gabroberge/oxlint-estree";
 import type { ESTree } from "@oxlint/plugins";
 
-import { bindingKind } from "./binding-kind";
-import { visitIdentifier } from "./visit-identifier";
+import { resolveIdentifier } from "../resolve/resolve-identifier";
+import { emitAccess } from "./emit-access";
+import { emitUnknown } from "./emit-unknown";
 import { visitMemberTarget } from "./visit-member-target";
 import type { Walker } from "./walker";
 
 /**
- * An assignment target. Writing a member of the analyzed object is
- * recorded by key; writing anything not local to the member is a side
- * effect. A `compound` target (`+=`, `++`) is read first.
+ * An assignment target. Members and outside bindings become write facts;
+ * locals of the unit are not reported. A `compound` target (`+=`, `++`) is
+ * read first. Destructuring targets are visited element by element.
  */
 export function visitTarget(walker: Walker, node: ESTree.Node, compound: boolean): void {
 	const target = unwrapExpression(node);
 	if (target.type === "MemberExpression") {
 		visitMemberTarget(walker, target, compound);
 	} else if (target.type === "Identifier") {
-		if (compound) {
-			visitIdentifier(walker, target);
+		const resolution = resolveIdentifier(walker, target);
+		if (resolution.kind === "local") {
+			return;
 		}
 
-		walker.effects.sideEffects ||= bindingKind(walker.scope, target) !== "local";
+		if (compound) {
+			emitAccess(walker, "read", resolution.target, target);
+		}
+
+		emitAccess(walker, "write", resolution.target, target);
 	} else if (target.type === "AssignmentPattern") {
 		visitTarget(walker, target.left, false);
-		walker.visit(target.right, false);
+		walker.visit(target.right, "run");
 	} else if (target.type === "ArrayPattern") {
 		for (const element of target.elements) {
 			if (element !== null) {
@@ -38,7 +44,7 @@ export function visitTarget(walker: Walker, node: ESTree.Node, compound: boolean
 			}
 
 			if (property.computed) {
-				walker.visit(property.key, false);
+				walker.visit(property.key, "run");
 			}
 
 			visitTarget(walker, property.value, false);
@@ -46,7 +52,6 @@ export function visitTarget(walker: Walker, node: ESTree.Node, compound: boolean
 	} else if (target.type === "RestElement") {
 		visitTarget(walker, target.argument, false);
 	} else {
-		walker.effects.opaque = true;
-		walker.effects.sideEffects = true;
+		emitUnknown(walker, "unsupported-target", target);
 	}
 }
