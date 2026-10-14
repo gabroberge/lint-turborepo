@@ -1,5 +1,11 @@
 # @gabroberge/eslint-plugin-vitest
 
+## 0.1.3
+
+### Patch Changes
+
+- [#6](https://github.com/gabroberge/lint-turborepo/pull/6) [`e888b13`](https://github.com/gabroberge/lint-turborepo/commit/e888b13d94535ed5426b5dd1c466e18fa08f05b3) Thanks [@gabroberge](https://github.com/gabroberge)! - Republish so workspace dependencies (`@gabroberge/oxlint-estree`, `@gabroberge/oxlint-plugin`, `@gabroberge/typescript-ast`) are semver ranges on npm instead of `workspace:*`.
+
 ## 0.1.2
 
 ### Patch Changes
