@@ -1,5 +1,11 @@
 # @gabroberge/eslint-plugin-angular
 
+## 0.1.2
+
+### Patch Changes
+
+- [#6](https://github.com/gabroberge/lint-turborepo/pull/6) [`e888b13`](https://github.com/gabroberge/lint-turborepo/commit/e888b13d94535ed5426b5dd1c466e18fa08f05b3) Thanks [@gabroberge](https://github.com/gabroberge)! - Republish so dependencies on `@gabroberge/oxlint-estree` and `@gabroberge/oxlint-plugin` are semver ranges on npm instead of `workspace:*`.
+
 ## 0.1.1
 
 ### Patch Changes
