@@ -32,7 +32,7 @@
     },
     "packages/angular": {
       "name": "@gabroberge/eslint-plugin-angular",
-      "version": "0.0.0",
+      "version": "0.1.1",
       "dependencies": {
         "@gabroberge/oxlint-estree": "workspace:*",
         "@gabroberge/oxlint-plugin": "workspace:*",
@@ -41,21 +41,21 @@
     },
     "packages/ast": {
       "name": "@gabroberge/typescript-ast",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "typescript": "6.0.3",
       },
     },
     "packages/estree": {
       "name": "@gabroberge/oxlint-estree",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@oxlint/plugins": "^1.86.0",
       },
     },
     "packages/nestjs": {
       "name": "@gabroberge/eslint-plugin-nestjs",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@gabroberge/oxlint-estree": "workspace:*",
         "@gabroberge/oxlint-plugin": "workspace:*",
@@ -70,14 +70,14 @@
     },
     "packages/plugin": {
       "name": "@gabroberge/oxlint-plugin",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@oxlint/plugins": "^1.86.0",
       },
     },
     "packages/typescript": {
       "name": "@gabroberge/eslint-plugin-typescript",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@gabroberge/oxlint-estree": "workspace:*",
         "@gabroberge/oxlint-plugin": "workspace:*",
@@ -86,7 +86,7 @@
     },
     "packages/vitest": {
       "name": "@gabroberge/eslint-plugin-vitest",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@gabroberge/oxlint-estree": "workspace:*",
         "@gabroberge/oxlint-plugin": "workspace:*",
