@@ -55,7 +55,7 @@ bun run lint
 bun run typecheck
 ```
 
-Releases are versioned with Changesets. A `patch` / `minor` / `major` file under `.changeset/` becomes a version PR on `master`, then `publish.yml` packs and publishes to npm.
+Releases are versioned with Changesets. A `patch` / `minor` / `major` file under `.changeset/` becomes a version PR on `master` (`ci:version` runs `changeset version` then `bun update` so the lockfile matches bumped workspace deps). Merging that PR runs `publish.yml`, which publishes with `bun publish` so `workspace:*` is resolved on npm (see [Changesets + Bun workspaces](https://ianm.com/posts/2025-08-18-setting-up-changesets-with-bun-workspaces)).
 
 ## License
 

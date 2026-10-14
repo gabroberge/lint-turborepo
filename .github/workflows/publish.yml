@@ -46,34 +46,13 @@ jobs:
 
             - uses: changesets/action/version@v2
               with:
+                  script: bun run ci:version
                   commit-message: "chore: version packages"
                   pr-title: "chore: version packages"
 
-    pack:
+    publish:
         if: needs.select-mode.outputs.mode == 'publish'
         needs: select-mode
-        runs-on: ubuntu-latest
-        outputs:
-            pack-dir-artifact-id: ${{ steps.pack.outputs.pack-dir-artifact-id }}
-        permissions:
-            contents: read
-        steps:
-            - uses: actions/checkout@v7
-              with:
-                  persist-credentials: false
-
-            - uses: ./.github/actions/setup-bun-with-cache
-
-            - name: Build
-              run: bunx turbo run build
-
-            - id: pack
-              uses: changesets/action/pack@v2
-              with:
-                  publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
-
-    publish:
-        needs: pack
         runs-on: ubuntu-latest
         permissions:
             contents: write
@@ -83,14 +62,16 @@ jobs:
               with:
                   persist-credentials: false
 
-            # npm CLI does the OIDC exchange; bun publish does not.
+            # Trusted publishing: NODE_AUTH_TOKEN for bun publish (npm OIDC).
             - uses: actions/setup-node@v7
               with:
                   node-version: 26
+                  registry-url: https://registry.npmjs.org
+                  scope: "@gabroberge"
                   package-manager-cache: false
 
             - uses: ./.github/actions/setup-bun-with-cache
 
             - uses: changesets/action/publish@v2
               with:
-                  pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
+                  script: bun run ci:publish
