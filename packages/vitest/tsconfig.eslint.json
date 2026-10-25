@@ -4,7 +4,7 @@
 		"composite": false,
 		"incremental": false,
 		"noEmit": true,
-		"rootDir": "."
+		"rootDir": "../.."
 	},
 	"include": ["src/**/*.ts", "tsdown.config.ts", "vitest.config.ts"]
 }
