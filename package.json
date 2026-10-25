@@ -8,6 +8,8 @@
 	"type": "module",
 	"scripts": {
 		"build": "turbo run build",
+		"ci:publish": "bun run build && bash -c 'for dir in packages/*/; do (cd \"$dir\" && bun publish --access public) || true; done' && changeset git-tag",
+		"ci:version": "changeset version && bun update",
 		"format": "oxfmt",
 		"format:check": "oxfmt --check",
 		"lint": "turbo run lint",
@@ -32,7 +34,7 @@
 		"eslint-plugin-perfectionist": "^5.11.0",
 		"husky": "^9.1.7",
 		"lint-staged": "^17.4.1",
-		"oxfmt": "^0.66.0",
+		"oxfmt": "^0.72.0",
 		"oxlint": "^1.86.0",
 		"tsc-files": "^1.1.4",
 		"tsdown": "^0.23.0",
